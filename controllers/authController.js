@@ -1,14 +1,17 @@
-// const Login = require("../models/Login");   // your User model
+// const Login = require("../models/Login");
 // const bcrypt = require("bcryptjs");
 // const jwt = require("jsonwebtoken");
 
-// // Function to generate unique ID
+// // Generate unique ID helper
 // const generateUniqueId = async () => {
 //   const count = await Login.countDocuments();
 //   const next = (count + 1).toString().padStart(4, "0");
-//   return `DTVB-${next}`;
+//   return `DTVB-${next}`; 
 // };
 
+// // -----------------------------------------------------------------
+// // REGISTER USER
+// // -----------------------------------------------------------------
 // exports.registerUser = async (req, res) => {
 //   try {
 //     const {
@@ -21,12 +24,11 @@
 //       confirmPassword
 //     } = req.body;
 
-//     // Check password match
 //     if (password !== confirmPassword) {
 //       return res.status(400).json({ msg: "Passwords do not match" });
 //     }
 
-//     // Check if email OR phone exists
+//     // Check for email or phone already registered
 //     const existing = await Login.findOne({
 //       $or: [{ email }, { phoneNumber }]
 //     });
@@ -35,13 +37,12 @@
 //       return res.status(400).json({ msg: "Email or Phone already registered" });
 //     }
 
-//     // Hash password
+//     // Encrypt password
 //     const hashed = await bcrypt.hash(password, 10);
 
 //     // Generate unique user ID
 //     const uniqueId = await generateUniqueId();
 
-//     // Create user
 //     const newUser = new Login({
 //       uniqueId,
 //       firstName,
@@ -60,11 +61,88 @@
 //     });
 
 //   } catch (error) {
-//     console.error("Registration Error ❌", error);
+//     console.error("Registration Error ", error);
 //     res.status(500).json({ msg: "Internal Server Error" });
 //   }
 // };
 
+// // -----------------------------------------------------------------
+// // LOGIN USER (email or phone)
+// // -----------------------------------------------------------------
+// exports.loginUser = async (req, res) => {
+//   try {
+//     const { loginId, password } = req.body;
+
+//     if (!loginId || !password) {
+//       return res.status(400).json({ msg: "Enter email/phone and password" });
+//     }
+
+//     // Check email or phone
+//     const user = await Login.findOne({
+//       $or: [{ email: loginId }, { phoneNumber: loginId }]
+//     });
+
+//     if (!user) {
+//       return res.status(400).json({ msg: "Invalid login credentials" });
+//     }
+
+//     // Verify password
+//     const validPass = await bcrypt.compare(password, user.password);
+//     if (!validPass) {
+//       return res.status(400).json({ msg: "Invalid login credentials" });
+//     }
+
+//     // Make JWT token
+//     const token = jwt.sign(
+//       {
+//         id: user._id,
+//         uniqueId: user.uniqueId,
+//         email: user.email
+//       },
+//       process.env.JWT_SECRET,
+//       { expiresIn: "7d" }
+//     );
+
+//     res.status(200).json({
+//       msg: "Login successful",
+//       token,
+//       user: {
+//         uniqueId: user.uniqueId,
+//         name: `${user.firstName} ${user.lastName}`,
+//         email: user.email,
+//         phone: user.phoneNumber
+//       }
+//     });
+
+//   } catch (error) {
+//     console.error("Login Error ", error);
+//     res.status(500).json({ msg: "Internal Server Error" });
+//   }
+// };
+
+// // -----------------------------------------------------------------
+// // ADMIN GET USER BY UNIQUE ID
+// // -----------------------------------------------------------------
+// exports.getUserByUniqueId = async (req, res) => {
+//   try {
+//     const { uniqueId } = req.params;
+
+//     const user = await Login.findOne({ uniqueId });
+
+//     if (!user) {
+//       return res.status(404).json({ msg: "User not found" });
+//     }
+
+//     res.status(200).json({
+//       msg: "User found",
+//       user
+//     });
+
+//   } catch (error) {
+//     console.error("Admin Fetch Error ", error);
+//     res.status(500).json({ msg: "Internal Server Error" });
+//   }
+// };
 const Login = require("../models/Login");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
@@ -128,23 +206,30 @@ exports.registerUser = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Registration Error ❌", error);
+    console.error("Registration Error ", error);
     res.status(500).json({ msg: "Internal Server Error" });
   }
 };
 
 // -----------------------------------------------------------------
-// LOGIN USER (email or phone)
+// LOGIN USER (email OR phone OR loginId)
 // -----------------------------------------------------------------
 exports.loginUser = async (req, res) => {
   try {
-    const { loginId, password } = req.body;
+    let { loginId, email, phone, password } = req.body;
+
+    // 🔥 Fix frontend wrong payload:
+    // If frontend sends email as phone OR phone as email, fix it.
+    if (!loginId) {
+      if (email) loginId = email;   // phone entered by user
+      if (phone) loginId = phone;   // email entered by user
+    }
 
     if (!loginId || !password) {
       return res.status(400).json({ msg: "Enter email/phone and password" });
     }
 
-    // Check email or phone
+    // Find user by email or phone
     const user = await Login.findOne({
       $or: [{ email: loginId }, { phoneNumber: loginId }]
     });
@@ -153,13 +238,13 @@ exports.loginUser = async (req, res) => {
       return res.status(400).json({ msg: "Invalid login credentials" });
     }
 
-    // Verify password
+    // Compare passwords
     const validPass = await bcrypt.compare(password, user.password);
     if (!validPass) {
       return res.status(400).json({ msg: "Invalid login credentials" });
     }
 
-    // Make JWT token
+    // Create JWT token
     const token = jwt.sign(
       {
         id: user._id,
@@ -182,7 +267,7 @@ exports.loginUser = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Login Error ❌", error);
+    console.error("Login Error ", error);
     res.status(500).json({ msg: "Internal Server Error" });
   }
 };
@@ -206,7 +291,7 @@ exports.getUserByUniqueId = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Admin Fetch Error ❌", error);
+    console.error("Admin Fetch Error ", error);
     res.status(500).json({ msg: "Internal Server Error" });
   }
 };
