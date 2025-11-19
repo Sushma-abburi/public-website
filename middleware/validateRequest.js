@@ -1,5 +1,5 @@
 module.exports = (req, res, next) => {
-  const { email, phoneNumber, password } = req.body;
+  const { email, phone, password } = req.body;
 
   const emailRegex =
     /^[a-zA-Z0-9._%+-]+@(gmail\.com|yahoo\.com|outlook\.com)$/;
@@ -10,7 +10,7 @@ module.exports = (req, res, next) => {
     });
   }
 
-  if (!/^\d{10}$/.test(phoneNumber)) {
+  if (!/^\d{10}$/.test(phone)) {
     return res.status(400).json({ msg: "Phone number must be 10 digits" });
   }
 
