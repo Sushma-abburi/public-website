@@ -13,11 +13,12 @@ const candidateSchema = new mongoose.Schema(
     otherCourse: { type: String },
 
     department: { type: String, required: true },
-    yearOfPassing: { type: Number, required: true },
+    // yearOfPassing: { type: Number, required: true },
     college: { type: String, required: true },
 
-    cgpa: { type: String, required: true },
     gradeType: { type: String, enum: ["CGPA", "Percentage"], required: true },
+        cgpa: { type: String, required: true },
+
 
     employeeType: { type: String, enum: ["Fresher", "Experienced"], required: true },
 
@@ -33,5 +34,12 @@ const candidateSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+candidateSchema.pre("validate", function(next) {
+  if (this.gradeType) {
+    this.gradeType = this.gradeType.toUpperCase();
+  }
+  next();
+});
+
 
 module.exports = mongoose.model("Candidate", candidateSchema);
