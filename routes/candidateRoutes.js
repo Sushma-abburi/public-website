@@ -7,6 +7,7 @@ const {
   getCandidateById,
   updateCandidate,
   deleteCandidate,
+  getCandidateByEmail,
 } = require("../controllers/candidateController");
 
 // CREATE
@@ -21,5 +22,7 @@ router.put("/:id", upload.single("resume"), updateCandidate);
 
 // DELETE
 router.delete("/:id", deleteCandidate);
+router.get("/email/:email", getCandidateByEmail);
+
 
 module.exports = router;

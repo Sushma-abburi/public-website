@@ -111,3 +111,19 @@ exports.deleteCandidate = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+exports.getCandidateByEmail = async (req, res) => {
+  try {
+    const { email } = req.params;
+
+    const candidate = await Candidate.findOne({ email });
+
+    if (!candidate) {
+      return res.status(404).json({ message: "Candidate not found" });
+    }
+
+    res.status(200).json(candidate);
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
