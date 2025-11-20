@@ -1,3 +1,5 @@
+const jwt = require("jsonwebtoken");
+
 module.exports = (req, res, next) => {
   const { email, phone, password } = req.body;
 
@@ -22,6 +24,16 @@ module.exports = (req, res, next) => {
       msg: "Password must include 1 uppercase, 1 lowercase, 1 number, 1 special character and min 12 chars"
     });
   }
+
+  // 🔥 GENERATE TOKEN FROM EMAIL
+  const token = jwt.sign(
+    { email }, 
+    process.env.JWT_SECRET, 
+    { expiresIn: "1h" } // expires in 1 hour
+  );
+
+  // Attach token to request object so controller can use it
+  req.emailToken = token;
 
   next();
 };
