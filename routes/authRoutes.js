@@ -1,17 +1,8 @@
 const express = require("express");
 const router = express.Router();
+const { register, login } = require("../controllers/authController");
 
-const validateRequest = require("../middleware/validateRequest");
-const { registerUser, loginUser, getUserByUniqueId } = require("../controllers/authController");
-
-// Register
-router.post("/register", validateRequest, registerUser);
-
-// Login (email or phone)
-router.post("/login", loginUser);
-
-// Admin search user by unique Id
-router.get("/user/:uniqueId", getUserByUniqueId);
+router.post("/register", register);
+router.post("/login", login);
 
 module.exports = router;
-

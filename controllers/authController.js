@@ -1,156 +1,88 @@
-const Login = require("../models/Login");
+const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
-// Generate unique ID → DTVB-0001
-const generateUniqueId = async () => {
-  const count = await Login.countDocuments();
-  return `DTVB-${(count + 1).toString().padStart(4, "0")}`;
-};
-
-// -------------------------------------------------------
-// REGISTER USER
-// -------------------------------------------------------
-exports.registerUser = async (req, res) => {
+exports.register = async (req, res) => {
   try {
-    const {
-      firstName,
-      lastName,
-      dob,
-      email,
-      countryCode,
-      phone,
-      password,
-      confirmPassword
-    } = req.body;
+    const { firstName, lastName, dob, email, countryCode, phone, password, confirmPassword } =
+      req.body;
 
-    // 1. Check password match
     if (password !== confirmPassword) {
       return res.status(400).json({ msg: "Passwords do not match" });
     }
 
-    // 2. Check email or phone duplicates
-    const existing = await Login.findOne({
-      $or: [{ email }, { phone }]
-    });
+    // check existing user
+    const existingEmail = await User.findOne({ email });
+    if (existingEmail) return res.status(400).json({ msg: "Email already exists" });
 
-    if (existing) {
-      return res.status(400).json({ msg: "Email or Phone already registered" });
-    }
+    const existingPhone = await User.findOne({ phone });
+    if (existingPhone) return res.status(400).json({ msg: "Phone already exists" });
 
-    // 3. Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // Hash password
+    const hashed = await bcrypt.hash(password, 10);
 
-    // 4. Generate unique employee ID
-    const uniqueId = await generateUniqueId();
-
-    // 5. Create new user
-    const newUser = new Login({
-      uniqueId,
+    const newUser = new User({
       firstName,
       lastName,
       dob,
       email,
       countryCode,
       phone,
-      password: hashedPassword
+      password: hashed,
     });
 
     await newUser.save();
-
-    res.status(201).json({
-      msg: "Registration successful",
-      uniqueId: newUser.uniqueId
-    });
-
-  } catch (err) {
-    console.error("Registration Error:", err);
-    res.status(500).json({ msg: "Internal Server Error" });
+    res.status(201).json({ msg: "User registered successfully", user: newUser });
+  } catch (error) {
+    res.status(500).json({ msg: "Server error", error: error.message });
   }
 };
 
-// -------------------------------------------------------
-// LOGIN USER (email OR phone)
-// -------------------------------------------------------
-exports.loginUser = async (req, res) => {
+// --------------------------------------------
+// LOGIN using email OR phone + password
+// --------------------------------------------
+exports.login = async (req, res) => {
   try {
-    let { loginId, email, phone, password } = req.body;
+    const { email, phone, password } = req.body;
 
-    // Accept any of these: loginId / email / phone
-    if (!loginId) {
-      if (email) loginId = email;
-      if (phone) loginId = phone;
+    console.log("REQUEST BODY:", req.body);
+
+    if (!email && !phone) {
+      return res.status(400).json({ msg: "Email or phone is required" });
+    }
+console.log("EMAIL TYPE:", typeof email, "VALUE:", email);
+console.log("PHONE TYPE:", typeof phone, "VALUE:", phone);
+
+    let user;
+
+    if (email) {
+      user = await User.findOne({ email: email.trim().toLowerCase() });
     }
 
-    if (!loginId || !password) {
-      return res.status(400).json({ msg: "Enter email/phone and password" });
+    if (!user && phone) {
+      user = await User.findOne({ phone: phone.trim() });
     }
 
-    // Find the user by email OR phone
-    const user = await Login.findOne({
-      $or: [
-        { email: loginId },
-        { phone: loginId }
-      ]
-    });
+    console.log("FOUND USER:", user);
 
     if (!user) {
-      return res.status(400).json({ msg: "Invalid login credentials" });
+      return res.status(404).json({ msg: "Invalid email/phone" });
     }
 
-    // Compare password
-    const validPass = await bcrypt.compare(password, user.password);
-    if (!validPass) {
-      return res.status(400).json({ msg: "Invalid login credentials" });
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ msg: "Invalid password" });
     }
 
-    // Generate token
     const token = jwt.sign(
-      {
-        id: user._id,
-        uniqueId: user.uniqueId
-      },
+      { id: user._id, email: user.email, phone: user.phone },
       process.env.JWT_SECRET,
-      { expiresIn: "7d" }
+      { expiresIn: "1d" }
     );
 
-    res.status(200).json({
-      msg: "Login successful",
-      token,
-      user: {
-        uniqueId: user.uniqueId,
-        name: `${user.firstName} ${user.lastName}`,
-        email: user.email,
-        phone: user.phone
-      }
-    });
-
-  } catch (err) {
-    console.error("Login Error:", err);
-    res.status(500).json({ msg: "Internal Server Error" });
-  }
-};
-
-// -------------------------------------------------------
-// ADMIN — GET USER BY UNIQUE ID (DTVB-0001)
-// -------------------------------------------------------
-exports.getUserByUniqueId = async (req, res) => {
-  try {
-    const { uniqueId } = req.params;
-
-    const user = await Login.findOne({ uniqueId });
-
-    if (!user) {
-      return res.status(404).json({ msg: "User not found" });
-    }
-
-    res.status(200).json({
-      msg: "User found",
-      user
-    });
+    res.json({ msg: "Login successful", token, user });
 
   } catch (error) {
-    console.error("Admin Fetch Error:", error);
-    res.status(500).json({ msg: "Internal Server Error" });
+    res.status(500).json({ msg: "Server error", error: error.message });
   }
 };
