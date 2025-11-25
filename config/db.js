@@ -1,11 +1,21 @@
 const mongoose = require("mongoose");
 
+let isConnected = false; // prevent multiple connections
+
 const connectDB = async () => {
+  if (isConnected) return;
+
   try {
-    await mongoose.connect(process.env.MONGO_URI);
-    console.log("MongoDB connected ✔");
+    const conn = await mongoose.connect(process.env.MONGO_URI, {
+      serverSelectionTimeoutMS: 5000,
+    });
+
+    console.log("MongoDB connected");
+    isConnected = true;
+    return conn;
   } catch (err) {
-    console.error("MongoDB Connection Error ❌", err);
+    console.error("MongoDB connection error:", err.message);
+    throw err;
   }
 };
 
