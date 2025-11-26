@@ -13,6 +13,11 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
+app.use(cors({
+  origin: "http://localhost:3000", // your React app
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  credentials: true
+}));
 
 // app.use(async (req, res, next) => {
 //   try {
