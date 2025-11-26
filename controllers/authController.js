@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 const sendEmail = require("../utils/sendEmail");
 const sendSMS = require("../utils/sendSMS");
 
+
 exports.register = async (req, res) => {
   try {
     const { firstName, lastName, dob, email, countryCode, phone, password, confirmPassword } =
@@ -88,36 +89,41 @@ exports.login = async (req, res) => {
 };
 
 ////SEND OTP
-exports.sendOtp = async (req, res) => {
-  try {
-    const { emailOrMobile } = req.body;
+// exports.sendOtp = async (req, res) => {
+//   try {
+//     const { emailOrMobile } = req.body;
 
-    const user = await User.findOne({
-      $or: [{ email: emailOrMobile }, { phone: emailOrMobile }],
-    });
+//     const user = await User.findOne({
+//       $or: [{ email: emailOrMobile }, { phone: emailOrMobile }],
+//     });
 
-    if (!user)
-      return res.status(404).json({ message: "No user found" });
+//     if (!user)
+//       return res.status(404).json({ message: "No user found" });
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    user.otp = otp;
-    user.otpExpires = Date.now() + 5 * 60 * 1000; // 5 minutes
-    await user.save();
+//     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // Send Email or SMS
-    if (user.email === emailOrMobile) {
-      await sendEmail(user.email, "Your OTP Code", `Your OTP is ${otp}`);
-    } else {
-      await sendSMS(user.phone, `Your OTP is ${otp}`);
-    }
+//     user.otp = otp;
+//     user.otpExpires = Date.now() + 5 * 60 * 1000;
+//     await user.save();
 
-    res.json({ message: "OTP sent successfully" });
+//     const emailSent = await sendEmail(
+//       user.email,
+//       "Your OTP Code",
+//       `Your OTP is ${otp}`
+//     );
 
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ message: "Server error" });
-  }
-};
+//     if (!emailSent) {
+//       return res.status(500).json({ message: "Failed to send OTP email" });
+//     }
+
+//     res.json({ message: "OTP sent successfully" });
+
+//   } catch (error) {
+//     console.log(error);
+//     res.status(500).json({ message: "Server error" });
+//   }
+// };
+
 
 ////VERIFY OTP
 exports.verifyOtp = async (req, res) => {
@@ -172,5 +178,107 @@ exports.resetPassword = async (req, res) => {
 
   } catch (error) {
     res.status(500).json({ message: "Server error" });
+  }
+};
+
+///send sms
+
+// exports.sendOtp = async (req, res) => {
+//   try {
+//     const { emailOrMobile } = req.body;
+
+//     const user = await User.findOne({
+//       $or: [{ email: emailOrMobile }, { phone: emailOrMobile }],
+//     });
+
+//     if (!user)
+//       return res.status(404).json({ message: "No user found" });
+
+//     const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+//     user.otp = otp;
+//     user.otpExpires = Date.now() + 5 * 60 * 1000;
+//     await user.save();
+
+//     // Priority: email or mobile
+//     if (emailOrMobile.includes("@")) {
+//       await sendEmail(user.email, "Your OTP", `Your OTP is ${otp}`);
+//     } else {
+//       await sendSMS(user.phone, `Your OTP is ${otp}`);
+//     }
+
+//     res.json({ message: "OTP sent successfully" });
+
+//   } catch (error) {
+//     console.log(error);
+//     res.status(500).json({ message: "Server error" });
+//   }
+// };
+
+
+exports.sendOtp = async (req, res) => {
+  try {
+    const { emailOrMobile } = req.body;
+
+    if (!emailOrMobile) {
+      return res.status(400).json({ message: "Email or Mobile is required" });
+    }
+
+    // Detect whether user entered email or phone number
+    const isEmail = /\S+@\S+\.\S+/.test(emailOrMobile);
+    const isMobile = /^[0-9]{10}$/.test(emailOrMobile);
+
+    if (!isEmail && !isMobile) {
+      return res.status(400).json({ message: "Enter valid email or 10-digit mobile number" });
+    }
+
+    // Fetch user by either email or phone
+    const user = await User.findOne({
+      $or: [{ email: emailOrMobile }, { phone: emailOrMobile }],
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: "No user found with this email or mobile" });
+    }
+
+    // Generate OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    user.otp = otp;
+    user.otpExpires = Date.now() + 5 * 60 * 1000; // 5 minutes
+    await user.save();
+
+    // --- Send OTP via EMAIL ---
+    if (isEmail) {
+      const emailSent = await sendEmail(
+        user.email,
+        "Your OTP Code",
+        `Your OTP is ${otp}\nIt will expire in 5 minutes.`
+      );
+
+      if (!emailSent) {
+        return res.status(500).json({ message: "Failed to send OTP email" });
+      }
+    }
+
+    // --- Send OTP via SMS ---
+    if (isMobile) {
+      const smsSent = await sendSMS(
+        user.phone,
+        `Your OTP is ${otp}. It will expire in 5 minutes.`
+      );
+
+      if (!smsSent) {
+        return res.status(500).json({ message: "Failed to send OTP SMS" });
+      }
+    }
+
+    return res.json({
+      message: "OTP sent successfully",
+      delivery: isEmail ? "email" : "sms",
+    });
+
+  } catch (error) {
+    console.log("SEND OTP ERROR:", error);
+    return res.status(500).json({ message: "Server error" });
   }
 };

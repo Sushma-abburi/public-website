@@ -17,9 +17,11 @@ const sendEmail = async (to, subject, text) => {
       text,
     });
 
+    console.log("OTP Email Sent →", to);
+
     return true;
   } catch (error) {
-    console.log("Email Error:", error);
+    console.log("Email Sending Error:", error);
     return false;
   }
 };
