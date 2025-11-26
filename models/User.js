@@ -11,6 +11,9 @@ const userSchema = new mongoose.Schema(
     phone: { type: String, unique: true, sparse: true }, // optional but unique
 
     password: { type: String, required: true },
+    otp: String,
+    otpExpires: Date,
+
   },
   { timestamps: true }
 );
