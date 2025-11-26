@@ -1,5 +1,7 @@
 const mongoose = require("mongoose");
 
+mongoose.set("strictQuery", false);
+mongoose.set("autoIndex", true);  // enables index creation
 let isConnected = false; // prevent multiple connections
 
 const connectDB = async () => {
