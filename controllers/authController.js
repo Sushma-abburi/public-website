@@ -44,30 +44,78 @@ exports.register = async (req, res) => {
 // --------------------------------------------
 // LOGIN using email OR phone + password
 // --------------------------------------------
+// exports.login = async (req, res) => {
+//   try {
+//     const { email, phone, password } = req.body;
+
+//     console.log("REQUEST BODY:", req.body);
+
+//     if (!email && !phone) {
+//       return res.status(400).json({ msg: "Email or phone is required" });
+//     }
+
+//     let user;
+
+//     if (email) {
+//       user = await User.findOne({ email: email.trim().toLowerCase() });
+//     }
+
+//     if (!user && phone) {
+//       user = await User.findOne({ phone: phone.trim() });
+//     }
+
+//     console.log("FOUND USER:", user);
+
+//     if (!user) {
+//       return res.status(404).json({ msg: "Invalid email/phone" });
+//     }
+
+//     const isMatch = await bcrypt.compare(password, user.password);
+//     if (!isMatch) {
+//       return res.status(400).json({ msg: "Invalid password" });
+//     }
+
+//     const token = jwt.sign(
+//       { id: user._id, email: user.email, phone: user.phone },
+//       process.env.JWT_SECRET,
+//       { expiresIn: "1d" }
+//     );
+
+//     res.json({ msg: "Login successful", token, user });
+
+//   } catch (error) {
+//     res.status(500).json({ msg: "Server error", error: error.message });
+//   }
+// };
 exports.login = async (req, res) => {
   try {
     const { email, phone, password } = req.body;
 
-    console.log("REQUEST BODY:", req.body);
-
-    if (!email && !phone) {
+    if ((!email || email.trim() === "") && (!phone || String(phone).trim() === "")) {
       return res.status(400).json({ msg: "Email or phone is required" });
     }
 
-    let user;
+    let user = null;
 
-    if (email) {
+    // ✅ EMAIL LOGIN
+    if (email && email.trim() !== "") {
       user = await User.findOne({ email: email.trim().toLowerCase() });
     }
 
+    // ✅ 10-DIGIT PHONE LOGIN ONLY
     if (!user && phone) {
-      user = await User.findOne({ phone: phone.trim() });
+      const cleanPhone = String(phone).replace(/\D/g, ""); // removes spaces, symbols
+
+      // ✅ STRICT 10 DIGIT CHECK
+      if (!/^\d{10}$/.test(cleanPhone)) {
+        return res.status(400).json({ msg: "Phone number must be exactly 10 digits" });
+      }
+
+      user = await User.findOne({ phone: cleanPhone });
     }
 
-    console.log("FOUND USER:", user);
-
     if (!user) {
-      return res.status(404).json({ msg: "Invalid email/phone" });
+      return res.status(404).json({ msg: "Invalid email or phone" });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
@@ -76,7 +124,7 @@ exports.login = async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: user._id, email: user.email, phone: user.phone },
+      { id: user._id },
       process.env.JWT_SECRET,
       { expiresIn: "1d" }
     );

@@ -8,7 +8,12 @@ const userSchema = new mongoose.Schema(
 
     email: { type: String, unique: true, sparse: true }, // optional but unique
     countryCode: { type: String, required: true },
-    phone: { type: String, unique: true, sparse: true }, // optional but unique
+    phone: {
+  type: String,
+  required: true,
+  match: [/^\d{10}$/, "Phone must be 10 digits"]
+}
+, // optional but unique
 
     password: { type: String, required: true },
     otp: String,
