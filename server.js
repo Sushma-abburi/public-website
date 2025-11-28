@@ -14,7 +14,8 @@ app.use(express.json());
 //app.use(cors());
 
 app.use(cors({
-  origin: "http://localhost:3000", // your React app
+  origin: ["http://project-public-website.vercel.app",
+  "http://localhost:3000"], // your React app
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true
 }));
