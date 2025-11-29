@@ -7,6 +7,7 @@ dotenv.config();
 
 const authRoutes = require("./routes/authRoutes");
 const candidateRoutes = require("./routes/candidateRoutes");
+const applicationRoutes = require("./routes/applications");
 
 
 const app = express();
@@ -22,12 +23,19 @@ app.use(cors({
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/candidates", candidateRoutes);
+app.use("/api/applications", applicationRoutes);
 
 // MongoDB connect
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => console.log("MongoDB Connected "))
   .catch((err) => console.error("MongoDB Error ", err));
+
+app.get('/', (req, res) => res.send('test server alive'));
+app.post('/api/applications', (req, res) => {
+  console.log('TEST-APP: POST /api/applications received, body:', req.body);
+  res.json({ ok: true, msg: 'TEST handler responded' });
+});
 
 app.get("/", (req, res) => {
   res.send("API is running...");
