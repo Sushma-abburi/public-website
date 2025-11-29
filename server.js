@@ -31,7 +31,6 @@ mongoose
   .then(() => console.log("MongoDB Connected "))
   .catch((err) => console.error("MongoDB Error ", err));
 
-app.get('/', (req, res) => res.send('test server alive'));
 app.post('/api/applications', (req, res) => {
   console.log('TEST-APP: POST /api/applications received, body:', req.body);
   res.json({ ok: true, msg: 'TEST handler responded' });
