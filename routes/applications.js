@@ -1,12 +1,9 @@
+// routes/applications.js
 const express = require("express");
 const router = express.Router();
-const upload = require("../middleware/uploadResume"); // your multer memory storage
+const upload = require("../middleware/uploadResume"); // multer memory storage
 const ctrl = require("../controllers/applicationController");
  
-// Accept fields:
-// - photo : single
-// - resume: single
-// - certificates: multiple (n)
 const uploadFields = upload.fields([
   { name: "photo", maxCount: 1 },
   { name: "resume", maxCount: 1 },

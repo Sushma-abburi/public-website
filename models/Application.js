@@ -1,3 +1,4 @@
+// models/Application.js
 const mongoose = require("mongoose");
 const { Schema } = mongoose;
  
@@ -41,7 +42,6 @@ const ProfessionalEntry = new Schema({
   skills: [String],
   projects: [Schema.Types.Mixed],
   linkedin: String,
-  // Mixed so we can accept array<string> OR array<object>
   certifications: { type: Schema.Types.Mixed, default: [] },
   achievements: [String],
   companyName: String,
@@ -57,11 +57,13 @@ const ProfessionalEntry = new Schema({
 }, { _id: false });
  
 const ApplicationSchema = new Schema({
-  // job reference optional
-  job: { type: Schema.Types.ObjectId, ref: "Job", required: false },
+  // store job as plain string (you asked for string type)
+  job: { type: String, required: false },
  
-  // fallback fields
+  // optional user-visible title (can duplicate job)
   jobTitle: { type: String, trim: true, index: true },
+ 
+  // if you want to store an embedded object separately, keep this (optional)
   jobEmbedded: { type: Schema.Types.Mixed },
  
   personal: { type: PersonalSchema, required: true },
@@ -75,7 +77,6 @@ const ApplicationSchema = new Schema({
   updatedAt: { type: Date, default: Date.now }
 });
  
-// update updatedAt on save
 ApplicationSchema.pre("save", function(next) {
   this.updatedAt = Date.now();
   next();
