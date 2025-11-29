@@ -8,7 +8,7 @@ dotenv.config();
 const authRoutes = require("./routes/authRoutes");
 const candidateRoutes = require("./routes/candidateRoutes");
 const applicationRoutes = require("./routes/applications");
-
+const savedJobRoutes = require("./routes/savedJobs");
 
 const app = express();
 app.use(express.json());
@@ -24,6 +24,7 @@ app.use(cors({
 app.use("/api/auth", authRoutes);
 app.use("/api/candidates", candidateRoutes);
 app.use("/api/applications", applicationRoutes);
+app.use("/api/saved-jobs", savedJobRoutes);
 
 // MongoDB connect
 mongoose
