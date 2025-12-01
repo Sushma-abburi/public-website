@@ -14,9 +14,14 @@ const app = express();
 app.use(express.json());
 //app.use(cors());
 
+// app.use(cors({
+//   origin: "http://localhost:3000", // your React app
+//   methods: ["GET", "POST", "PUT", "DELETE"],
+//   credentials: true
+// }));
 app.use(cors({
-  origin: "http://localhost:3000", // your React app
-  methods: ["GET", "POST", "PUT", "DELETE"],
+  origin: "*",   // ✅ allow all origins
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
   credentials: true
 }));
 
