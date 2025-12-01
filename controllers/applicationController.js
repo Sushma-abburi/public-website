@@ -464,10 +464,15 @@ exports.getApplicationById = async (req, res) => {
 };
 
 // ✅ HR VIEW
+// exports.getApplicationsForHR = async (req, res) => {
+//   const docs = await Application.find().sort({ createdAt: -1 });
+//   res.json({ data: docs });
+// };
 exports.getApplicationsForHR = async (req, res) => {
   const docs = await Application.find().sort({ createdAt: -1 });
-  res.json({ data: docs });
+  res.json(docs);   // ✅ SEND ARRAY DIRECTLY
 };
+
 
 // ✅ PUBLIC VIEW
 exports.getPublicApplications = async (req, res) => {
