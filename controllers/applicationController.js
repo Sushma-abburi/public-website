@@ -304,14 +304,36 @@ exports.getAppliedJobIdsByEmail = async (req, res) => {
 };
 
 // ✅ ✅ ADMIN SUMMARY STATS
-exports.getSummaryStats = async (req, res) => {
-  const totalApplied = await Application.countDocuments();
-  const onHold = await Application.countDocuments({
-    status: { $in: ["Viewed", "Shortlisted"] },
-  });
-  const hired = await Application.countDocuments({ status: "Hired" });
+// exports.getSummaryStats = async (req, res) => {
+//   const totalApplied = await Application.countDocuments();
+//   const onHold = await Application.countDocuments({
+//     status: { $in: ["Viewed", "Shortlisted"] },
+//   });
+//   const hired = await Application.countDocuments({ status: "Hired" });
 
-  res.json({ totalApplied, onHold, hired });
+//   res.json({ totalApplied, onHold, hired });
+// };
+exports.getSummaryStats = async (req, res) => {
+  try {
+    const totalApplied = await Application.countDocuments();
+
+    // ✅ SAFE STATUS COUNT (nested inside professional)
+    const onHold = await Application.countDocuments({
+      "professional.status": { $in: ["Viewed", "Shortlisted"] },
+    });
+
+    const hired = await Application.countDocuments({
+      "professional.status": "Hired",
+    });
+
+    res.status(200).json({ totalApplied, onHold, hired });
+  } catch (error) {
+    console.error("SUMMARY STATS ERROR:", error);
+    res.status(500).json({
+      message: "Failed to fetch summary stats",
+      error: error.message,
+    });
+  }
 };
 
 // ✅ ✅ MONTHLY APPLICATION STATS (CHART)
