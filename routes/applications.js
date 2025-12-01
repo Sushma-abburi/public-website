@@ -39,4 +39,8 @@ router.get("/public", ctrl.getPublicApplications);
 // ===============================
 router.get("/:id", ctrl.getApplicationById);
 
+//onhold
+router.get("/hold", ctrl.getOnHoldApplications);
+
+
 module.exports = router;

@@ -233,21 +233,22 @@ exports.createApplication = async (req, res) => {
 exports.patchApplication = async (req, res) => {
   try {
     const { id } = req.params;
-    if (!mongoose.Types.ObjectId.isValid(id))
-      return res.status(400).json({ error: "Invalid application id" });
 
-    const app = await Application.findById(id);
-    if (!app) return res.status(404).json({ error: "Application not found" });
+    const updated = await Application.findByIdAndUpdate(
+      id,
+      { 
+        status: req.body.status,   // ✅ VERY IMPORTANT
+        reason: req.body.reason 
+      },
+      { new: true }
+    );
 
-    Object.assign(app.personal, tryParseJSON(req.body.personal));
-    Object.assign(app.professional, tryParseJSON(req.body.professional));
-
-    await app.save();
-    res.json({ message: "Application updated", application: app });
+    res.json({ success: true, application: updated });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
+
 
 // ✅ GET BY ID
 exports.getApplicationById = async (req, res) => {
@@ -368,4 +369,17 @@ exports.getMonthlyStats = async (req, res) => {
 exports.deleteApplication = async (req, res) => {
   await Application.findByIdAndDelete(req.params.id);
   res.json({ message: "Application deleted" });
+};
+
+//Hold
+exports.getOnHoldApplications = async (req, res) => {
+  try {
+    const docs = await Application.find({ status: "Shortlisted" })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    res.status(200).json(docs);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 };
