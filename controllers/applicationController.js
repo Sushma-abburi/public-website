@@ -466,11 +466,26 @@ exports.getApplicationById = async (req, res) => {
 // ✅ HR VIEW
 // exports.getApplicationsForHR = async (req, res) => {
 //   const docs = await Application.find().sort({ createdAt: -1 });
-//   res.json({ data: docs });
+//   res.json(docs);   // ✅ SEND ARRAY DIRECTLY
 // };
 exports.getApplicationsForHR = async (req, res) => {
-  const docs = await Application.find().sort({ createdAt: -1 });
-  res.json(docs);   // ✅ SEND ARRAY DIRECTLY
+  try {
+    console.log("HR API HIT");
+
+    const docs = await Application.find().sort({ _id: -1 });
+
+    console.log("HR APPS COUNT:", docs.length);
+
+    // send raw docs (array) – React will map it
+    res.status(200).json(docs);
+  } catch (err) {
+    console.error("HR API ERROR:", err);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch HR applications",
+      error: err.message,
+    });
+  }
 };
 
 
