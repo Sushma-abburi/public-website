@@ -260,11 +260,11 @@ exports.getApplicationsForHR = async (req, res) => {
   try {
     console.log("HR API HIT");
 
-    const docs = await Application.find().sort({ _id: -1 });
+    const docs = await Application.find({})
+      .sort({ _id: -1 })
+      .limit(50)     // ✅ LIMIT
+      .lean();       // ✅ FAST RESPONSE
 
-    console.log("HR APPS COUNT:", docs.length);
-
-    // send raw docs (array) – React will map it
     res.status(200).json(docs);
   } catch (err) {
     console.error("HR API ERROR:", err);
@@ -275,6 +275,7 @@ exports.getApplicationsForHR = async (req, res) => {
     });
   }
 };
+
 
 
 // ✅ PUBLIC VIEW
