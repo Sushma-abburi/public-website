@@ -3,17 +3,16 @@ const SavedJob = require("../models/SavedJob");
 // ✅ SAVE JOB (THIS IS THE MISSING PIECE)
 exports.saveJob = async (req, res) => {
   try {
-    const { userEmail, jobId, jobTitle, jobType } = req.body;
+    const { userEmail, jobId, jobTitle, jobType, category } = req.body;
 
-    // ✅ Validation
     if (!userEmail || !jobId) {
       return res.status(400).json({ msg: "userEmail and jobId are required" });
     }
 
-    // ✅ Prevent duplicate saved jobs
+    // ✅ Prevent duplicate save
     const existing = await SavedJob.findOne({
       userEmail,
-      originalJobId: jobId
+      jobId
     });
 
     if (existing) {
@@ -21,10 +20,11 @@ exports.saveJob = async (req, res) => {
     }
 
     const savedJob = await SavedJob.create({
-      userEmail,                     // ✅ REQUIRED
-      originalJobId: jobId,          // ✅ REQUIRED
-      jobTitle,                      // ✅ REQUIRED for frontend
-      jobType,                       // ✅ REQUIRED for frontend
+      userEmail,
+      jobId,        // ✅ MATCHES SCHEMA
+      jobTitle,
+      jobType,
+      category
     });
 
     res.status(201).json({
@@ -40,27 +40,35 @@ exports.saveJob = async (req, res) => {
 };
 
 
+
 // ✅ GET SAVED JOBS BY USER EMAIL
 exports.getSavedJobsByUser = async (req, res) => {
   try {
     const { email } = req.query;
 
+    console.log("✅ Email received:", email);
+
     if (!email) {
       return res.status(400).json({ message: "Email required" });
     }
 
-    const jobs = await SavedJob.find({ userEmail: email })
-      .sort({ createdAt: -1 });
+    const jobs = await SavedJob.find({ userEmail: email });
+
+    console.log("✅ Jobs found:", jobs);
 
     res.status(200).json({
-      savedJobs: jobs   // ✅ IMPORTANT KEY NAME
+      savedJobs: jobs
     });
 
   } catch (error) {
-    console.error("Get saved jobs error:", error);
-    res.status(500).json({ message: "Server error" });
+    console.error("❌ Get saved jobs FULL error:", error);  // <-- IMPORTANT
+    res.status(500).json({
+      message: "Server error",
+      error: error.message      // <-- SEND REAL ERROR TO FRONTEND
+    });
   }
 };
+
 
 // ✅ DELETE SAVED JOB
 exports.deleteSavedJob = async (req, res) => {
