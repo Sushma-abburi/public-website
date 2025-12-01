@@ -1,42 +1,3 @@
-// const SavedJob = require("../models/SavedJob");
-
-// // ✅ GET SAVED JOBS BY USER EMAIL
-// exports.getSavedJobsByUser = async (req, res) => {
-//   try {
-//     const { email } = req.query;
-
-//     if (!email) {
-//       return res.status(400).json({ msg: "Email is required" });
-//     }
-
-//     const jobs = await SavedJob.find({ userEmail: email }).sort({
-//       createdAt: -1,
-//     });
-
-//     res.json({
-//       success: true,
-//       data: jobs,
-//     });
-//   } catch (err) {
-//     res.status(500).json({ msg: err.message });
-//   }
-// };
-
-// // ✅ DELETE SAVED JOB
-// exports.deleteSavedJob = async (req, res) => {
-//   try {
-//     const { id } = req.params;
-
-//     await SavedJob.findByIdAndDelete(id);
-
-//     res.json({
-//       success: true,
-//       msg: "Saved job deleted",
-//     });
-//   } catch (err) {
-//     res.status(500).json({ msg: err.message });
-//   }
-// };
 const SavedJob = require("../models/SavedJob");
 
 // ✅ GET SAVED JOBS BY USER EMAIL
@@ -45,19 +6,19 @@ exports.getSavedJobsByUser = async (req, res) => {
     const { email } = req.query;
 
     if (!email) {
-      return res.status(400).json({ msg: "Email is required" });
+      return res.status(400).json({ message: "Email required" });
     }
 
     const jobs = await SavedJob.find({ userEmail: email })
-      .sort({ createdAt: -1 })
-      .lean();
+      .sort({ createdAt: -1 });
 
-    res.json({
-      success: true,
-      savedJobs: jobs   // ✅ FIXED KEY FOR FRONTEND
+    res.status(200).json({
+      savedJobs: jobs   // ✅ IMPORTANT KEY NAME
     });
-  } catch (err) {
-    res.status(500).json({ msg: err.message });
+
+  } catch (error) {
+    console.error("Get saved jobs error:", error);
+    res.status(500).json({ message: "Server error" });
   }
 };
 

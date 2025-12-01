@@ -304,15 +304,7 @@ exports.getAppliedJobIdsByEmail = async (req, res) => {
 };
 
 // ✅ ✅ ADMIN SUMMARY STATS
-// exports.getSummaryStats = async (req, res) => {
-//   const totalApplied = await Application.countDocuments();
-//   const onHold = await Application.countDocuments({
-//     status: { $in: ["Viewed", "Shortlisted"] },
-//   });
-//   const hired = await Application.countDocuments({ status: "Hired" });
 
-//   res.json({ totalApplied, onHold, hired });
-// };
 exports.getSummaryStats = async (req, res) => {
   try {
     const totalApplied = await Application.countDocuments();
