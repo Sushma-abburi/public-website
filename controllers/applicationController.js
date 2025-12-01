@@ -286,10 +286,20 @@ exports.getPublicApplications = async (req, res) => {
 
 // ✅ USER APPLIED JOBS BY EMAIL
 exports.getApplicationsByEmail = async (req, res) => {
-  const { email } = req.query;
-  const docs = await Application.find({ "personal.email": email });
-  res.json({ data: docs });
+  try {
+    const { email } = req.query;
+
+    const applications = await Application.find({
+      "personal.email": email
+    }).sort({ createdAt: -1 });
+
+    res.json({ applications });
+  } catch (err) {
+    console.error("Get applications error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
 };
+
 
 // ✅ ✅ APPLIED JOB IDS (FOR "ALREADY APPLIED" BADGE)
 exports.getAppliedJobIdsByEmail = async (req, res) => {
