@@ -160,15 +160,35 @@ const appDoc = new Application({
 };
 
 // ✅ UPDATE APPLICATION
+// exports.patchApplication = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+
+//     const updated = await Application.findByIdAndUpdate(
+//       id,
+//       { 
+//         status: req.body.status,   // ✅ VERY IMPORTANT
+//         reason: req.body.reason 
+//       },
+//       { new: true }
+//     );
+
+//     res.json({ success: true, application: updated });
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// };
+// ✅ UPDATE APPLICATION STATUS + REASON (HR ACTION)
 exports.patchApplication = async (req, res) => {
   try {
     const { id } = req.params;
+    const { status, reason } = req.body;
 
     const updated = await Application.findByIdAndUpdate(
       id,
       { 
-        status: req.body.status,   // ✅ VERY IMPORTANT
-        reason: req.body.reason 
+        status,          // ✅ THIS MUST UPDATE
+        reason           // ✅ OPTIONAL
       },
       { new: true }
     );

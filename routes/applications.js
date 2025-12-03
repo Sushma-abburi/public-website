@@ -13,7 +13,10 @@ const uploadFields = upload.fields([
 // ✅ CREATE / UPDATE / DELETE
 // ===============================
 router.post("/", uploadFields, ctrl.createApplication);
-router.patch("/:id", uploadFields, ctrl.patchApplication);
+
+// ✅ HR STATUS + REASON UPDATE (THIS ONE UPDATES DB)
+router.patch("/:id", ctrl.patchApplication);
+
 router.delete("/:id", ctrl.deleteApplication);
 
 // ===============================
@@ -23,7 +26,7 @@ router.get("/by-email", ctrl.getApplicationsByEmail);
 router.get("/applied-job-ids", ctrl.getAppliedJobIdsByEmail);
 
 // ===============================
-// ✅ ADMIN STATS (MUST BE ABOVE :id)
+// ✅ ADMIN STATS
 // ===============================
 router.get("/stats/summary", ctrl.getSummaryStats);
 router.get("/stats/monthly", ctrl.getMonthlyStats);
@@ -35,12 +38,13 @@ router.get("/hr", ctrl.getApplicationsForHR);
 router.get("/public", ctrl.getPublicApplications);
 
 // ===============================
+// ✅ ON-HOLD (SHORTLISTED)
+// ===============================
+router.get("/hold", ctrl.getOnHoldApplications);
+
+// ===============================
 // ✅ SINGLE APPLICATION (MUST BE LAST)
 // ===============================
 router.get("/:id", ctrl.getApplicationById);
-
-//onhold
-router.get("/hold", ctrl.getOnHoldApplications);
-
 
 module.exports = router;
