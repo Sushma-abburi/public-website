@@ -302,14 +302,20 @@ exports.deleteApplication = async (req, res) => {
 };
 
 //Hold
+// ✅ GET ON-HOLD (SHORTLISTED) APPLICATIONS
 exports.getOnHoldApplications = async (req, res) => {
   try {
     const docs = await Application.find({ status: "Shortlisted" })
       .sort({ createdAt: -1 })
       .lean();
 
-    res.status(200).json(docs);
+    res.status(200).json({
+      success: true,
+      applications: docs
+    });
+
   } catch (err) {
+    console.error("OnHold API Error:", err);
     res.status(500).json({ error: err.message });
   }
 };

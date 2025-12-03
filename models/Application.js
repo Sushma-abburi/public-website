@@ -1,5 +1,7 @@
 // models/Application.js
 const mongoose = require("mongoose");
+mongoose.set("bufferCommands", false);
+
 const { Schema } = mongoose;
  
 const PersonalSchema = new Schema({

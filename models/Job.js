@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+mongoose.set("bufferCommands", false);
 const Schema = mongoose.Schema;
  
 const JobSchema = new Schema({
