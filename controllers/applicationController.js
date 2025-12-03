@@ -57,89 +57,6 @@ function normalizeCertifications(raw) {
   return [String(raw)];
 }
 
-// ✅ ✅ CREATE APPLICATION (WITH DUPLICATE BLOCK + AUTO AZURE)
-// exports.createApplication = async (req, res) => {
-//   try {
-//     const personal = tryParseJSON(req.body.personal) || req.body.personal || {};
-//     const educations = tryParseJSON(req.body.educations) || [];
-//     let professional =
-//       tryParseJSON(req.body.professional) || req.body.professional || {};
-
-//     if (!personal?.email) {
-//       return res.status(400).json({ error: "personal.email is required" });
-//     }
-
-//     // ✅ DUPLICATE APPLY PREVENTION
-//     if (req.body.job) {
-//       const exists = await Application.findOne({
-//         job: req.body.job,
-//         "personal.email": personal.email,
-//       });
-
-//       if (exists) {
-//         return res.status(400).json({
-//           success: false,
-//           msg: "You already applied for this job",
-//         });
-//       }
-//     }
-
-//     // ✅ FILE HANDLING
-//     if (req.files) {
-//       if (req.files.photo?.[0]) {
-//         const f = req.files.photo[0];
-//         personal.photoUrl = await uploadBufferToAzure(
-//           f.buffer,
-//           f.originalname,
-//           f.mimetype
-//         );
-//       }
-
-//       if (req.files.resume?.[0]) {
-//         const f = req.files.resume[0];
-//         professional.resumeUrl = await uploadBufferToAzure(
-//           f.buffer,
-//           f.originalname,
-//           f.mimetype
-//         );
-//       }
-
-//       if (req.files.certificates?.length) {
-//         const uploaded = [];
-//         for (const f of req.files.certificates) {
-//           const url = await uploadBufferToAzure(
-//             f.buffer,
-//             f.originalname,
-//             f.mimetype
-//           );
-//           if (url) uploaded.push(url);
-//         }
-//         professional.certificateUrls = uploaded;
-//       }
-//     }
-
-//     professional.certifications = normalizeCertifications(
-//       professional.certifications
-//     );
-
-//     const appDoc = new Application({
-//       job: req.body.job || null,
-//       jobTitle: req.body.jobTitle || null,
-//       jobEmbedded: tryParseJSON(req.body.job),
-//       personal,
-//       educations,
-//       professional,
-//     });
-
-//     await appDoc.save();
-//     return res
-//       .status(201)
-//       .json({ message: "Application submitted", application: appDoc });
-//   } catch (err) {
-//     console.error("createApplication error:", err.message);
-//     return res.status(500).json({ error: "Server error", details: err.message });
-//   }
-// };
 exports.createApplication = async (req, res) => {
   try {
     const personal = tryParseJSON(req.body.personal) || req.body.personal || {};
@@ -205,17 +122,30 @@ exports.createApplication = async (req, res) => {
     );
 
     // ✅ ✅ ✅ MAIN FIX — JOB PARSING
-    const jobObj = tryParseJSON(req.body.job);
+const jobObj = tryParseJSON(req.body.job);
 
-    // ✅ ✅ ✅ STORE JOB CORRECTLY
-    const appDoc = new Application({
-      job: jobObj?._id || req.body.job || null,
-      jobTitle: req.body.jobTitle || jobObj?.jobTitle || null,
-      jobEmbedded: jobObj || null,
-      personal,
-      educations,
-      professional,
-    });
+// ✅ ✅ ✅ FORCE JOB TYPE INTO jobEmbedded
+const jobEmbedded = jobObj
+  ? {
+      ...jobObj,
+      jobType:
+        req.body.jobType ||        // ✅ from frontend
+        jobObj.jobType ||          // ✅ from job object
+        jobObj.type ||             // ✅ fallback
+        null,
+    }
+  : null;
+
+// ✅ ✅ ✅ STORE JOB CORRECTLY
+const appDoc = new Application({
+  job: jobObj?._id || req.body.job || null,
+  jobTitle: req.body.jobTitle || jobObj?.jobTitle || null,
+  jobEmbedded,                    // ✅ FIXED
+  personal,
+  educations,
+  professional,
+});
+
 
     await appDoc.save();
 
