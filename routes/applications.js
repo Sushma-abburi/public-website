@@ -3,20 +3,18 @@ const router = express.Router();
 const upload = require("../middleware/uploadResume");
 const ctrl = require("../controllers/applicationController");
 
+// ✅ FILE UPLOAD CONFIG
 const uploadFields = upload.fields([
   { name: "photo", maxCount: 1 },
   { name: "resume", maxCount: 1 },
-  { name: "certificates", maxCount: 20 }
+  { name: "certificates", maxCount: 20 },
 ]);
 
 // ===============================
 // ✅ CREATE / UPDATE / DELETE
 // ===============================
 router.post("/", uploadFields, ctrl.createApplication);
-
-// ✅ HR STATUS + REASON UPDATE (THIS ONE UPDATES DB)
 router.patch("/:id", ctrl.patchApplication);
-
 router.delete("/:id", ctrl.deleteApplication);
 
 // ===============================
