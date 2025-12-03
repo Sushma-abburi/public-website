@@ -314,6 +314,42 @@ exports.getMonthlyStats = async (req, res) => {
 
   res.json({ success: true, data: formatted });
 };
+// ✅ ✅ GET APPLICATIONS BY MONTH (CLICK FEATURE)
+exports.getApplicationsByMonth = async (req, res) => {
+  try {
+    const { month, year } = req.query; 
+    // month = 1 to 12
+    // year = optional (default = current year)
+
+    if (!month) {
+      return res.status(400).json({ message: "Month is required" });
+    }
+
+    const selectedYear = year || new Date().getFullYear();
+
+    const start = new Date(selectedYear, month - 1, 1);
+    const end = new Date(selectedYear, month, 1);
+
+    const applications = await Application.find({
+      createdAt: {
+        $gte: start,
+        $lt: end,
+      },
+    }).sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      month,
+      year: selectedYear,
+      count: applications.length,
+      applications,
+    });
+
+  } catch (error) {
+    console.error("Month filter error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
 
 // ✅ DELETE
 exports.deleteApplication = async (req, res) => {
