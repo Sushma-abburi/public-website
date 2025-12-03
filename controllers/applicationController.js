@@ -350,6 +350,22 @@ exports.getApplicationsByMonth = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+// ✅ GET HIRED APPLICATIONS
+exports.getHiredApplications = async (req, res) => {
+  try {
+    const docs = await Application.find({ status: "Hired" })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    res.status(200).json({
+      success: true,
+      applications: docs
+    });
+  } catch (err) {
+    console.error("Hired API Error:", err);
+    res.status(500).json({ error: err.message });
+  }
+};
 
 // ✅ DELETE
 exports.deleteApplication = async (req, res) => {

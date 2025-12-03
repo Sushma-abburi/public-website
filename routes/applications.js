@@ -31,6 +31,7 @@ router.get("/applied-job-ids", ctrl.getAppliedJobIdsByEmail);
 router.get("/stats/summary", ctrl.getSummaryStats);
 router.get("/stats/monthly", ctrl.getMonthlyStats);
 router.get("/stats/by-month", ctrl.getApplicationsByMonth);
+router.get("/hired", ctrl.getHiredApplications);
 
 // ===============================
 // ✅ HR / PUBLIC
