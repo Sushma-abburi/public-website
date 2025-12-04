@@ -19,7 +19,11 @@ const userSchema = new mongoose.Schema(
     password: { type: String, required: true },
     otp: String,
     otpExpires: Date,
-
+   // ✅ ✅ ✅ THIS WAS MISSING
+    isProfileCompleted: {
+      type: Boolean,
+      default: false
+    }
   },
   { timestamps: true }
 );
