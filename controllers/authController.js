@@ -3,7 +3,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const sendEmail = require("../utils/sendEmail");
 const sendSMS = require("../utils/sendSMS");
-
+const uploadToAzure = require("../utils/uploadToAzure");
 
 exports.register = async (req, res) => {
   try {
@@ -84,8 +84,7 @@ exports.login = async (req, res) => {
       { expiresIn: "1d" }
     );
 
-    // res.json({ msg: "Login successful", token, user });
-    res.json({
+res.json({
   msg: "Login successful",
   token,
   user: {
@@ -94,7 +93,8 @@ exports.login = async (req, res) => {
     lastName: user.lastName,
     email: user.email,
     phone: user.phone,
-    isProfileCompleted: user.isProfileCompleted
+    isProfileCompleted: user.isProfileCompleted,
+    profilePhoto: user.profilePhoto   // ✅ ADD THIS
   }
 });
 
@@ -104,6 +104,35 @@ exports.login = async (req, res) => {
   }
 };
 
+exports.uploadProfilePhoto = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    if (!req.file) {
+      return res.status(400).json({ message: "No image uploaded" });
+    }
+
+    const photoUrl = await uploadToAzure(
+      req.file.buffer,
+      req.file.originalname,
+      req.file.mimetype
+    );
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { profilePhoto: photoUrl },
+      { new: true }
+    );
+
+    res.json({
+      message: "Profile photo updated successfully",
+      profilePhoto: user.profilePhoto
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 ////VERIFY OTP
 exports.verifyOtp = async (req, res) => {
   try {
