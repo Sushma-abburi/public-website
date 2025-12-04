@@ -1,4 +1,6 @@
 const Candidate = require("../models/Candidate");
+const User = require("../models/User");   // ✅ ADD THIS
+
 const uploadToAzure = require("../utils/uploadToAzure");
 const jwt = require("jsonwebtoken");
 
@@ -6,17 +8,23 @@ exports.createCandidate = async (req, res) => {
   try {
     const data = req.body;
 
-    // Generate Email Token (Valid for 1 hour)
+    // ✅ FIND USER BY EMAIL
+    const user = await User.findOne({ email: data.email });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // ✅ Generate Email Token
     const emailToken = jwt.sign(
       { email: data.email }, 
       process.env.JWT_SECRET, 
       { expiresIn: "1h" }
     );
 
-    // Attach token to data before saving
     data.emailToken = emailToken;
 
-    // Upload resume to Azure Blob
+    // ✅ Upload resume to Azure
     if (req.file) {
       const url = await uploadToAzure(
         req.file.buffer,
@@ -26,16 +34,22 @@ exports.createCandidate = async (req, res) => {
       data.resume = url;
     }
 
+    // ✅ SAVE CANDIDATE
     const candidate = await Candidate.create(data);
 
-    // Verification link to frontend
+    // ✅ ✅ ✅ MARK PROFILE AS COMPLETED
+    user.isProfileCompleted = true;
+    await user.save();
+
     const verificationLink = `https://your-frontend.com/candidate/verify?token=${emailToken}`;
 
     res.status(201).json({
       message: "Candidate created",
       candidate,
+      isProfileCompleted: true,   // ✅ Optional useful response
       emailVerificationLink: verificationLink,
     });
+
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
