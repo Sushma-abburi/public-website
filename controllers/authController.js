@@ -41,52 +41,7 @@ exports.register = async (req, res) => {
   }
 };
 
-// --------------------------------------------
-// LOGIN using email OR phone + password
-// --------------------------------------------
-// exports.login = async (req, res) => {
-//   try {
-//     const { email, phone, password } = req.body;
 
-//     console.log("REQUEST BODY:", req.body);
-
-//     if (!email && !phone) {
-//       return res.status(400).json({ msg: "Email or phone is required" });
-//     }
-
-//     let user;
-
-//     if (email) {
-//       user = await User.findOne({ email: email.trim().toLowerCase() });
-//     }
-
-//     if (!user && phone) {
-//       user = await User.findOne({ phone: phone.trim() });
-//     }
-
-//     console.log("FOUND USER:", user);
-
-//     if (!user) {
-//       return res.status(404).json({ msg: "Invalid email/phone" });
-//     }
-
-//     const isMatch = await bcrypt.compare(password, user.password);
-//     if (!isMatch) {
-//       return res.status(400).json({ msg: "Invalid password" });
-//     }
-
-//     const token = jwt.sign(
-//       { id: user._id, email: user.email, phone: user.phone },
-//       process.env.JWT_SECRET,
-//       { expiresIn: "1d" }
-//     );
-
-//     res.json({ msg: "Login successful", token, user });
-
-//   } catch (error) {
-//     res.status(500).json({ msg: "Server error", error: error.message });
-//   }
-// };
 exports.login = async (req, res) => {
   try {
     const { email, phone, password } = req.body;
@@ -129,49 +84,25 @@ exports.login = async (req, res) => {
       { expiresIn: "1d" }
     );
 
-    res.json({ msg: "Login successful", token, user });
+    // res.json({ msg: "Login successful", token, user });
+    res.json({
+  msg: "Login successful",
+  token,
+  user: {
+    id: user._id,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    email: user.email,
+    phone: user.phone,
+    isProfileCompleted: user.isProfileCompleted
+  }
+});
+
 
   } catch (error) {
     res.status(500).json({ msg: "Server error", error: error.message });
   }
 };
-
-////SEND OTP
-// exports.sendOtp = async (req, res) => {
-//   try {
-//     const { emailOrMobile } = req.body;
-
-//     const user = await User.findOne({
-//       $or: [{ email: emailOrMobile }, { phone: emailOrMobile }],
-//     });
-
-//     if (!user)
-//       return res.status(404).json({ message: "No user found" });
-
-//     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
-//     user.otp = otp;
-//     user.otpExpires = Date.now() + 5 * 60 * 1000;
-//     await user.save();
-
-//     const emailSent = await sendEmail(
-//       user.email,
-//       "Your OTP Code",
-//       `Your OTP is ${otp}`
-//     );
-
-//     if (!emailSent) {
-//       return res.status(500).json({ message: "Failed to send OTP email" });
-//     }
-
-//     res.json({ message: "OTP sent successfully" });
-
-//   } catch (error) {
-//     console.log(error);
-//     res.status(500).json({ message: "Server error" });
-//   }
-// };
-
 
 ////VERIFY OTP
 exports.verifyOtp = async (req, res) => {
