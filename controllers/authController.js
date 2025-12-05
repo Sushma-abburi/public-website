@@ -106,11 +106,18 @@ res.json({
 
 exports.uploadProfilePhoto = async (req, res) => {
   try {
+    console.log("REQ.USER:", req.user);  // Debug
     const userId = req.user.id;
+
+    if (!userId) {
+      return res.status(400).json({ message: "Invalid user token" });
+    }
 
     if (!req.file) {
       return res.status(400).json({ message: "No image uploaded" });
     }
+
+    console.log("FILE RECEIVED:", req.file);
 
     const photoUrl = await uploadToAzure(
       req.file.buffer,
@@ -118,11 +125,19 @@ exports.uploadProfilePhoto = async (req, res) => {
       req.file.mimetype
     );
 
+    if (!photoUrl) {
+      return res.status(500).json({ message: "Azure upload failed" });
+    }
+
     const user = await User.findByIdAndUpdate(
       userId,
       { profilePhoto: photoUrl },
       { new: true }
     );
+
+    if (!user) {
+      return res.status(404).json({ message: "User not Found" });
+    }
 
     res.json({
       message: "Profile photo updated successfully",
@@ -130,6 +145,7 @@ exports.uploadProfilePhoto = async (req, res) => {
     });
 
   } catch (error) {
+    console.log("Upload error:", error);
     res.status(500).json({ message: error.message });
   }
 };
