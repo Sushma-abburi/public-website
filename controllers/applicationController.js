@@ -684,15 +684,27 @@ exports.getMonthlyStats = async (req, res) => {
 // ✅ MONTH FILTER
 exports.getApplicationsByMonth = async (req, res) => {
   try {
-    const { month, year } = req.query;
+    let { month, year } = req.query;
 
     if (!month) {
       return res.status(400).json({ message: "Month is required" });
     }
 
-    const selectedYear = year || new Date().getFullYear();
-    const start = new Date(selectedYear, month - 1, 1);
-    const end = new Date(selectedYear, month, 1);
+    // Convert month name → month number
+    let monthNumber = Number(month);
+
+    if (isNaN(monthNumber)) {
+      monthNumber = monthNamesMap[month.toLowerCase()];
+    }
+
+    if (!monthNumber) {
+      return res.status(400).json({ message: "Invalid month" });
+    }
+
+    const yearNumber = Number(year) || new Date().getFullYear();
+
+    const start = new Date(yearNumber, monthNumber - 1, 1);
+    const end = new Date(yearNumber, monthNumber, 1);
 
     const applications = await Application.find({
       createdAt: { $gte: start, $lt: end },
@@ -700,15 +712,18 @@ exports.getApplicationsByMonth = async (req, res) => {
 
     res.json({
       success: true,
-      month,
-      year: selectedYear,
+      month: monthNumber,
+      year: yearNumber,
       count: applications.length,
       applications,
     });
+
   } catch (error) {
-    res.status(500).json({ message: "Server error" });
+    console.error("getApplicationsByMonth ERROR:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
 
 // ✅ HIRED
 exports.getHiredApplications = async (req, res) => {
