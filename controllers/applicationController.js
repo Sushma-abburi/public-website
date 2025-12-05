@@ -690,17 +690,36 @@ exports.getApplicationsByMonth = async (req, res) => {
       return res.status(400).json({ message: "Month is required" });
     }
 
-    // Convert month name → month number
+    // ✅ Month name → number map
+    const monthNamesMap = {
+      january: 1,
+      february: 2,
+      march: 3,
+      april: 4,
+      may: 5,
+      june: 6,
+      july: 7,
+      august: 8,
+      september: 9,
+      october: 10,
+      november: 11,
+      december: 12
+    };
+
+    // Convert month to number
     let monthNumber = Number(month);
 
+    // If number conversion failed → try name
     if (isNaN(monthNumber)) {
       monthNumber = monthNamesMap[month.toLowerCase()];
     }
 
+    // If both failed → invalid month
     if (!monthNumber) {
-      return res.status(400).json({ message: "Invalid month" });
+      return res.status(400).json({ message: "Invalid month. Use 1–12 or full month name." });
     }
 
+    // Year fallback
     const yearNumber = Number(year) || new Date().getFullYear();
 
     const start = new Date(yearNumber, monthNumber - 1, 1);
