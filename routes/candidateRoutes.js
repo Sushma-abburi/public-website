@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const upload = require("../middleware/uploadResume");
+const authMiddleware = require("../middleware/authMiddleware");
 const {
   createCandidate,
   getAllCandidates,
@@ -8,6 +9,7 @@ const {
   updateCandidate,
   deleteCandidate,
   getCandidateByEmail,
+  prefillApplication,
 } = require("../controllers/candidateController");
 
 // CREATE
@@ -24,5 +26,11 @@ router.put("/:id", upload.single("resume"), updateCandidate);
 router.delete("/:id", deleteCandidate);
 router.get("/email/:email", getCandidateByEmail);
 
+// ✅ Prefill Application Form
+router.get(
+  "/prefill-application",
+  authMiddleware,
+  prefillApplication
+);
 
 module.exports = router;

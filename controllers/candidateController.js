@@ -141,3 +141,52 @@ exports.getCandidateByEmail = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+////prefill details
+exports.prefillApplication = async (req, res) => {
+  try {
+    const candidate = await Candidate.findOne({
+      email: req.user.email
+    });
+
+    if (!candidate) {
+      return res.json({ prefillAvailable: false });
+    }
+
+    const prefillData = {
+      personal: {
+        firstName: candidate.firstName,
+        lastName: candidate.lastName,
+        email: candidate.email,
+        phone: candidate.phone,
+        alternativePhone: candidate.alternatePhone
+      },
+      educations: [
+        {
+          educationLevel: candidate.course,
+          department: candidate.department,
+          collegeName: candidate.college
+        }
+      ],
+      professional: {
+        jobType: candidate.employeeType,
+        companyName: candidate.companyName || "",
+        duration: candidate.experienceYears || "",
+        skills: candidate.skills || [],
+        resumeUrl: candidate.resume || ""
+      }
+    };
+
+    return res.status(200).json({
+      prefillAvailable: true,
+      data: prefillData
+    });
+
+  } catch (error) {
+    console.error("Prefill application error:", error);
+    return res.status(500).json({
+      message: "Server error",
+      error: error.message
+    });
+  }
+};
