@@ -145,9 +145,17 @@ exports.getCandidateByEmail = async (req, res) => {
 ////prefill details
 exports.prefillApplication = async (req, res) => {
   try {
-    const candidate = await Candidate.findOne({
-      email: req.user.email
-    });
+    // ✅ Fetch user first
+    const user = await User.findById(req.user.id).select("email");
+
+    if (!user || !user.email) {
+      return res.json({ prefillAvailable: false });
+    }
+
+    // ✅ Normalize email
+    const email = user.email.toLowerCase().trim();
+
+    const candidate = await Candidate.findOne({ email });
 
     if (!candidate) {
       return res.json({ prefillAvailable: false });
@@ -177,16 +185,13 @@ exports.prefillApplication = async (req, res) => {
       }
     };
 
-    return res.status(200).json({
+    res.status(200).json({
       prefillAvailable: true,
       data: prefillData
     });
 
-  } catch (error) {
-    console.error("Prefill application error:", error);
-    return res.status(500).json({
-      message: "Server error",
-      error: error.message
-    });
+  } catch (err) {
+    console.error("Prefill error:", err);
+    res.status(500).json({ message: "Server error" });
   }
 };
