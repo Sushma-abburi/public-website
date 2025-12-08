@@ -9,6 +9,7 @@ const authRoutes = require("./routes/authRoutes");
 const candidateRoutes = require("./routes/candidateRoutes");
 const applicationRoutes = require("./routes/applications");
 const savedJobRoutes = require("./routes/savedJobs");
+const contactRoutes = require("./routes/contactRoutes");
 
 const app = express();
 
@@ -41,6 +42,7 @@ const startServer = async () => {
     app.use("/api/candidates", candidateRoutes);
     app.use("/api/applications", applicationRoutes);
     app.use("/api/saved-jobs", savedJobRoutes);
+    app.use("/api/contact", contactRoutes);
 
     // ✅ TEST ROUTE
     app.post("/api/applications-test", (req, res) => {

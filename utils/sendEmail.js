@@ -1,30 +1,29 @@
 const nodemailer = require("nodemailer");
 
-const sendEmail = async (to, subject, text) => {
-  try {
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.EMAIL,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.EMAIL,
+    pass: process.env.EMAIL_PASS,
+  },
+});
 
+const sendEmail = async ({ to, subject, text, html }) => {
+  try {
     await transporter.sendMail({
-      from: process.env.EMAIL,
+      from: `"DhaTvi Business Solutions" <${process.env.EMAIL}>`,
       to,
       subject,
       text,
+      html,
     });
 
-    console.log("OTP Email Sent →", to);
-
+    console.log("✅ Email Sent →", to);
     return true;
   } catch (error) {
-    console.log("Email Sending Error:", error);
+    console.error("❌ Email Sending Error:", error);
     return false;
   }
 };
 
 module.exports = sendEmail;
-
