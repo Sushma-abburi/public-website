@@ -239,7 +239,6 @@ exports.resetPassword = async (req, res) => {
 //   }
 // };
 
-
 exports.sendOtp = async (req, res) => {
   try {
     const { emailOrMobile } = req.body;
@@ -248,21 +247,25 @@ exports.sendOtp = async (req, res) => {
       return res.status(400).json({ message: "Email or Mobile is required" });
     }
 
-    // Detect whether user entered email or phone number
+    // Detect input type
     const isEmail = /\S+@\S+\.\S+/.test(emailOrMobile);
-    const isMobile = /^[0-9]{10}$/.test(emailOrMobile);
+    const isMobile = /^\d{10}$/.test(emailOrMobile);
 
     if (!isEmail && !isMobile) {
-      return res.status(400).json({ message: "Enter valid email or 10-digit mobile number" });
+      return res
+        .status(400)
+        .json({ message: "Enter valid email or 10-digit mobile number" });
     }
 
-    // Fetch user by either email or phone
+    // Find registered user only
     const user = await User.findOne({
       $or: [{ email: emailOrMobile }, { phone: emailOrMobile }],
     });
 
     if (!user) {
-      return res.status(404).json({ message: "No user found with this email or mobile" });
+      return res
+        .status(404)
+        .json({ message: "No user found with this email or mobile" });
     }
 
     // Generate OTP
@@ -271,20 +274,20 @@ exports.sendOtp = async (req, res) => {
     user.otpExpires = Date.now() + 5 * 60 * 1000; // 5 minutes
     await user.save();
 
-    // --- Send OTP via EMAIL ---
+    // ✅ SEND VIA EMAIL
     if (isEmail) {
-      const emailSent = await sendEmail(
-        user.email,
-        "Your OTP Code",
-        `Your OTP is ${otp}\nIt will expire in 5 minutes.`
-      );
+      const emailSent = await sendEmail({
+        to: user.email,
+        subject: "Your OTP Code",
+        text: `Your OTP is ${otp}. It will expire in 5 minutes.`,
+      });
 
       if (!emailSent) {
         return res.status(500).json({ message: "Failed to send OTP email" });
       }
     }
 
-    // --- Send OTP via SMS ---
+    // ✅ SEND VIA SMS
     if (isMobile) {
       const smsSent = await sendSMS(
         user.phone,
@@ -302,7 +305,7 @@ exports.sendOtp = async (req, res) => {
     });
 
   } catch (error) {
-    console.log("SEND OTP ERROR:", error);
+    console.error("SEND OTP ERROR:", error);
     return res.status(500).json({ message: "Server error" });
   }
 };
