@@ -150,28 +150,73 @@ exports.uploadProfilePhoto = async (req, res) => {
   }
 };
 ////VERIFY OTP
+// exports.verifyOtp = async (req, res) => {
+//   try {
+//     const { emailOrMobile, otp } = req.body;
+
+//     const user = await User.findOne({
+//       $or: [{ email: emailOrMobile }, { phone: emailOrMobile }],
+//     });
+
+//     if (!user) return res.status(404).json({ message: "User not found" });
+
+//     if (user.otp !== otp)
+//       return res.status(400).json({ message: "Invalid OTP" });
+
+//     if (user.otpExpires < Date.now())
+//       return res.status(400).json({ message: "OTP expired" });
+
+//     res.json({ message: "OTP verified successfully" });
+
+//   } catch (error) {
+//     res.status(500).json({ message: "Server error" });
+//   }
+// };
 exports.verifyOtp = async (req, res) => {
   try {
-    const { emailOrMobile, otp } = req.body;
+    // ✅ CRASH-PROOF BODY READ
+    const emailOrMobile = req.body && req.body.emailOrMobile;
+    const otp = req.body && req.body.otp;
+
+    console.log("RAW BODY:", req.body);
+
+    if (!emailOrMobile || !otp) {
+      return res.status(400).json({
+        message: "Email/Mobile and OTP are required"
+      });
+    }
+
+    let identity = emailOrMobile;
+
+    // normalize indian numbers
+    if (/^\+91\d{10}$/.test(identity)) {
+      identity = identity.slice(3);
+    }
 
     const user = await User.findOne({
-      $or: [{ email: emailOrMobile }, { phone: emailOrMobile }],
+      $or: [{ email: identity }, { phone: identity }],
     });
 
-    if (!user) return res.status(404).json({ message: "User not found" });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
-    if (user.otp !== otp)
+    if (!user.otp || user.otp !== otp) {
       return res.status(400).json({ message: "Invalid OTP" });
+    }
 
-    if (user.otpExpires < Date.now())
+    if (!user.otpExpires || user.otpExpires < Date.now()) {
       return res.status(400).json({ message: "OTP expired" });
+    }
 
-    res.json({ message: "OTP verified successfully" });
+    return res.json({ message: "OTP verified successfully" });
 
   } catch (error) {
-    res.status(500).json({ message: "Server error" });
+    console.error("VERIFY OTP ERROR:", error);
+    return res.status(500).json({ message: "Server error" });
   }
 };
+
 
 ////RESET PASSWORD
 exports.resetPassword = async (req, res) => {

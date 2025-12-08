@@ -9,15 +9,18 @@ module.exports = async function sendSMS(number, message) {
   try {
     const response = await client.messages.create({
       body: message,
-      from: process.env.TWILIO_PHONE, // Your Twilio phone number
-      to: "+91" + number,             // Indian number format
+      from: process.env.TWILIO_PHONE,
+      to: "+91" + number,
     });
 
-    console.log("SMS SENT →", response.sid);
+    console.log("✅ SMS SENT:", response.sid);
     return true;
 
   } catch (error) {
-    console.log("Twilio SMS Error:", error);
+    console.error("❌ TWILIO ERROR FULL:", error);
+    console.error("❌ ERROR MESSAGE:", error.message);
+    console.error("❌ ERROR CODE:", error.code);
     return false;
   }
 };
+
