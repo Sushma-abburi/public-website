@@ -67,6 +67,8 @@ const ApplicationSchema = new Schema({
  
   // if you want to store an embedded object separately, keep this (optional)
   jobEmbedded: { type: Schema.Types.Mixed },
+  
+  Location: { type: String, trim: true, index: true },
  
   personal: { type: PersonalSchema, required: true },
   educations: { type: [EducationEntry], default: [] },
