@@ -7,7 +7,7 @@ const ctrl = require("../controllers/applicationController");
 const uploadFields = upload.fields([
   { name: "photo", maxCount: 1 },
   { name: "resume", maxCount: 1 },
-  { name: "certificates", maxCount: 20 },
+  { name: "certifications", maxCount: 20 },
 ]);
 
 // ===============================
