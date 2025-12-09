@@ -31,6 +31,9 @@ router.get("/stats/monthly", ctrl.getMonthlyStats);
 router.get("/stats/by-month", ctrl.getApplicationsByMonth);
 router.get("/hired", ctrl.getHiredApplications);
 
+// routes/applicationRoutes.js   yearly api
+router.get("/stats/yearly", ctrl.getYearlyStats);
+
 // ===============================
 // ✅ HR / PUBLIC
 // ===============================

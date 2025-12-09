@@ -350,6 +350,49 @@ exports.getApplicationsByMonth = async (req, res) => {
   }
 };
 
+exports.getYearlyStats = async (req, res) => {
+  try {
+    const year = parseInt(req.query.year) || new Date().getFullYear();
+
+    const start = new Date(`${year}-01-01`);
+    const end = new Date(`${year + 1}-01-01`);
+
+    const data = await Application.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: start, $lt: end },
+        },
+      },
+      {
+        $group: {
+          _id: { month: { $month: "$createdAt" } },
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { "_id.month": 1 } },
+    ]);
+
+    // Fill missing months with 0
+    const months= [
+    "January","February","March","April","May","June",
+    "July","August","September","October","November","December"
+  ];
+
+    const monthly = months.map((m, i) => {
+      const found = data.find(d => d._id.month === i + 1);
+      return { month: m, count: found ? found.count : 0 };
+    });
+
+    const total = monthly.reduce((s, m) => s + m.count, 0);
+
+    res.json({ year, total, monthly });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch yearly stats" });
+  }
+};
+
+
 
 // ✅ HIRED
 exports.getHiredApplications = async (req, res) => {
