@@ -105,9 +105,9 @@ exports.createApplication = async (req, res) => {
         );
       }
 
-      if (req.files.certificates?.length) {
+      if (req.files.certifications?.length) {
         const uploaded = [];
-        for (const f of req.files.certificates) {
+        for (const f of req.files.certifications) {
           const url = await uploadBufferToAzure(
             f.buffer,
             f.originalname,
@@ -115,7 +115,7 @@ exports.createApplication = async (req, res) => {
           );
           if (url) uploaded.push(url);
         }
-        professional.certificateUrls = uploaded;
+        professional.certificationsUrls = uploaded;
       }
     }
 
@@ -140,6 +140,7 @@ exports.createApplication = async (req, res) => {
       job: jobObj?._id || req.body.job || null,
       jobTitle: req.body.jobTitle || jobObj?.jobTitle || null,
       jobEmbedded,
+      Location,
       personal,
       educations,
       professional,

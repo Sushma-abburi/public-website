@@ -37,15 +37,27 @@ exports.createCandidate = async (req, res) => {
     // ✅ SAVE CANDIDATE
     const candidate = await Candidate.create(data);
 
-    // ✅ ✅ ✅ MARK PROFILE AS COMPLETED
+    // // ✅ ✅ ✅ MARK PROFILE AS COMPLETED
+    // user.isProfileCompleted = true;
+    // await user.save();
+
+    // ✅ MARK PROFILE AS COMPLETED + UPDATE NAME
+    user.firstName = data.firstName;
+    user.lastName = data.lastName;
     user.isProfileCompleted = true;
     await user.save();
+
 
     const verificationLink = `https://your-frontend.com/candidate/verify?token=${emailToken}`;
 
     res.status(201).json({
       message: "Candidate created",
       candidate,
+      user: {
+    firstName: user.firstName,
+    lastName: user.lastName,
+    email: user.email,
+   },
       isProfileCompleted: true,   // ✅ Optional useful response
       emailVerificationLink: verificationLink,
     });
