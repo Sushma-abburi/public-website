@@ -9,19 +9,20 @@ const ctrl = require("../controllers/applicationController");
 //   { name: "resume", maxCount: 1 },
 //   { name: "certifications", maxCount: 20 },
 // ]);
-const uploadFields = upload.fields([
-  { name: "photo", maxCount: 1 },
-  { name: "resume", maxCount: 1 },
+// const uploadFields = upload.fields([
+//   { name: "photo", maxCount: 1 },
+//   { name: "resume", maxCount: 1 },
 
-  // ✅ accept both spellings to be safe
-  { name: "certifications", maxCount: 20 },
-  { name: "certificates", maxCount: 20 },
-]);
+//   // ✅ accept both spellings to be safe
+//   { name: "certifications", maxCount: 20 },
+//   { name: "certificates", maxCount: 20 },
+// ]);
+router.post("/", upload.any(), ctrl.createApplication);
 
 // ===============================
 // ✅ CREATE / UPDATE / DELETE
 // ===============================
-router.post("/", uploadFields, ctrl.createApplication);
+// router.post("/", uploadFields, ctrl.createApplication);
 router.patch("/:id", ctrl.patchApplication);
 router.delete("/:id", ctrl.deleteApplication);
 
