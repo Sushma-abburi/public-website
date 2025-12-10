@@ -140,7 +140,7 @@ exports.createApplication = async (req, res) => {
       job: jobObj?._id || req.body.job || null,
       jobTitle: req.body.jobTitle || jobObj?.jobTitle || null,
       jobEmbedded,
-      Location,
+      // Location,
       personal,
       educations,
       professional,
