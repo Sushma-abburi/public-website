@@ -4,68 +4,135 @@ const User = require("../models/User");   // ✅ ADD THIS
 const uploadToAzure = require("../utils/uploadToAzure");
 const jwt = require("jsonwebtoken");
 
+// exports.createCandidate = async (req, res) => {
+//   try {
+//     const data = req.body;
+
+//     // ✅ FIND USER BY EMAIL
+//     const user = await User.findOne({ email: data.email });
+
+//     if (!user) {
+//       return res.status(404).json({ message: "User not found" });
+//     }
+
+//     // ✅ Generate Email Token
+//     const emailToken = jwt.sign(
+//       { email: data.email }, 
+//       process.env.JWT_SECRET, 
+//       { expiresIn: "1h" }
+//     );
+
+//     data.emailToken = emailToken;
+
+//     // ✅ Upload resume to Azure
+//     if (req.file) {
+//       const url = await uploadToAzure(
+//         req.file.buffer,
+//         req.file.originalname,
+//         req.file.mimetype
+//       );
+//       data.resume = url;
+//     }
+
+//     // ✅ SAVE CANDIDATE
+//     const candidate = await Candidate.create(data);
+
+//     // // ✅ ✅ ✅ MARK PROFILE AS COMPLETED
+//     // user.isProfileCompleted = true;
+//     // await user.save();
+
+//     // ✅ MARK PROFILE AS COMPLETED + UPDATE NAME
+//     user.firstName = data.firstName;
+//     user.lastName = data.lastName;
+//     user.isProfileCompleted = true;
+//     await user.save();
+
+
+//     const verificationLink = `https://your-frontend.com/candidate/verify?token=${emailToken}`;
+
+//     res.status(201).json({
+//       message: "Candidate created",
+//       candidate,
+//       user: {
+//     firstName: user.firstName,
+//     lastName: user.lastName,
+//     email: user.email,
+//    },
+//       isProfileCompleted: true,   // ✅ Optional useful response
+//       emailVerificationLink: verificationLink,
+//     });
+
+//   } catch (error) {
+//     res.status(500).json({ message: error.message });
+//   }
+// };
 exports.createCandidate = async (req, res) => {
   try {
-    const data = req.body;
+    // ✅ 1. HARD GUARD
+    if (!req.body || !req.body.email) {
+      return res.status(400).json({
+        message: "Email is required",
+      });
+    }
 
-    // ✅ FIND USER BY EMAIL
-    const user = await User.findOne({ email: data.email });
+    const {
+      email,
+      firstName,
+      lastName,
+      ...rest
+    } = req.body;
 
+    // ✅ 2. FIND USER
+    const user = await User.findOne({ email });
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // ✅ Generate Email Token
+    // ✅ 3. TOKEN
     const emailToken = jwt.sign(
-      { email: data.email }, 
-      process.env.JWT_SECRET, 
+      { email },
+      process.env.JWT_SECRET,
       { expiresIn: "1h" }
     );
 
-    data.emailToken = emailToken;
+    const data = {
+      email,
+      firstName,
+      lastName,
+      ...rest,
+      emailToken,
+    };
 
-    // ✅ Upload resume to Azure
+    // ✅ 4. RESUME UPLOAD (OPTIONAL)
     if (req.file) {
-      const url = await uploadToAzure(
+      data.resume = await uploadToAzure(
         req.file.buffer,
         req.file.originalname,
         req.file.mimetype
       );
-      data.resume = url;
     }
 
-    // ✅ SAVE CANDIDATE
+    // ✅ 5. SAVE CANDIDATE
     const candidate = await Candidate.create(data);
 
-    // // ✅ ✅ ✅ MARK PROFILE AS COMPLETED
-    // user.isProfileCompleted = true;
-    // await user.save();
-
-    // ✅ MARK PROFILE AS COMPLETED + UPDATE NAME
-    user.firstName = data.firstName;
-    user.lastName = data.lastName;
+    // ✅ 6. UPDATE USER
+    user.firstName = firstName;
+    user.lastName = lastName;
     user.isProfileCompleted = true;
     await user.save();
-
-
-    const verificationLink = `https://your-frontend.com/candidate/verify?token=${emailToken}`;
 
     res.status(201).json({
       message: "Candidate created",
       candidate,
-      user: {
-    firstName: user.firstName,
-    lastName: user.lastName,
-    email: user.email,
-   },
-      isProfileCompleted: true,   // ✅ Optional useful response
-      emailVerificationLink: verificationLink,
+      isProfileCompleted: true,
     });
 
   } catch (error) {
+    console.error("CREATE CANDIDATE ERROR:", error);
     res.status(500).json({ message: error.message });
   }
 };
+
 
 
 exports.getAllCandidates = async (req, res) => {
