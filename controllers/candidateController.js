@@ -68,42 +68,32 @@ const jwt = require("jsonwebtoken");
 // };
 exports.createCandidate = async (req, res) => {
   try {
-    // ✅ 1. HARD GUARD
-    if (!req.body || !req.body.email) {
-      return res.status(400).json({
-        message: "Email is required",
-      });
+    if (!req.body?.profile) {
+      return res.status(400).json({ message: "Profile data missing" });
     }
 
-    const {
-      email,
-      firstName,
-      lastName,
-      ...rest
-    } = req.body;
+    const parsed = JSON.parse(req.body.profile);
+    const { personal, job } = parsed;
 
-    // ✅ 2. FIND USER
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
+    if (!personal?.email || !personal?.firstName || !personal?.lastName) {
+      return res.status(400).json({ message: "Personal details incomplete" });
     }
 
-    // ✅ 3. TOKEN
+    const user = await User.findOne({ email: personal.email });
+    if (!user) return res.status(404).json({ message: "User not found" });
+
     const emailToken = jwt.sign(
-      { email },
+      { email: personal.email },
       process.env.JWT_SECRET,
       { expiresIn: "1h" }
     );
 
     const data = {
-      email,
-      firstName,
-      lastName,
-      ...rest,
+      ...personal,
+      ...job,
       emailToken,
     };
 
-    // ✅ 4. RESUME UPLOAD (OPTIONAL)
     if (req.file) {
       data.resume = await uploadToAzure(
         req.file.buffer,
@@ -112,12 +102,11 @@ exports.createCandidate = async (req, res) => {
       );
     }
 
-    // ✅ 5. SAVE CANDIDATE
     const candidate = await Candidate.create(data);
 
-    // ✅ 6. UPDATE USER
-    user.firstName = firstName;
-    user.lastName = lastName;
+    // ✅ User update (NOW SAFE)
+    user.firstName = personal.firstName;
+    user.lastName = personal.lastName;
     user.isProfileCompleted = true;
     await user.save();
 
@@ -127,12 +116,11 @@ exports.createCandidate = async (req, res) => {
       isProfileCompleted: true,
     });
 
-  } catch (error) {
-    console.error("CREATE CANDIDATE ERROR:", error);
-    res.status(500).json({ message: error.message });
+  } catch (err) {
+    console.error("CREATE CANDIDATE ERROR:", err);
+    res.status(500).json({ message: err.message });
   }
 };
-
 
 
 exports.getAllCandidates = async (req, res) => {
