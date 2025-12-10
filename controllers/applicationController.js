@@ -63,14 +63,40 @@ const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 // ✅ CREATE APPLICATION (UNCHANGED LOGIC)
 exports.createApplication = async (req, res) => {
   try {
-    const personal = tryParseJSON(req.body.personal) || req.body.personal || {};
+    // const personal = tryParseJSON(req.body.personal) || req.body.personal || {};
+    let personal = tryParseJSON(req.body.personal) || req.body.personal || {};
+
+// ✅ NORMALIZE EMAIL (MANDATORY)
+personal.email =
+  personal.email ||
+  req.body.email ||
+  req.body["personal[email]"] ||
+  req.body["personal.email"] ||
+  req.body.userEmail ||
+  null;
+
+// ✅ OPTIONAL BUT RECOMMENDED
+personal.name =
+  personal.name || req.body.name || req.body.fullName || null;
+
+personal.contact =
+  personal.contact || req.body.phone || req.body.mobile || null;
+
+// ✅ FINAL CHECK (DO NOT REMOVE)
+if (!personal.email) {
+  return res.status(400).json({
+    success: false,
+    message: "Email is required to apply for a job",
+  });
+}
+
     const educations = tryParseJSON(req.body.educations) || [];
     let professional =
       tryParseJSON(req.body.professional) || req.body.professional || {};
 
-    // if (!personal?.email) {
-    //   return res.status(400).json({ error: "personal.email is required" });
-    // }
+    if (!personal?.email) {
+      return res.status(400).json({ error: "personal.email is required" });
+    }
 
     if (req.body.job) {
       const exists = await Application.findOne({
