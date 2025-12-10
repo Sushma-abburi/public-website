@@ -68,9 +68,9 @@ exports.createApplication = async (req, res) => {
     let professional =
       tryParseJSON(req.body.professional) || req.body.professional || {};
 
-    if (!personal?.email) {
-      return res.status(400).json({ error: "personal.email is required" });
-    }
+    // if (!personal?.email) {
+    //   return res.status(400).json({ error: "personal.email is required" });
+    // }
 
     if (req.body.job) {
       const exists = await Application.findOne({
