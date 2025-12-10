@@ -155,23 +155,68 @@ exports.getCandidateByEmail = async (req, res) => {
 };
 
 ////prefill details
+// exports.prefillApplication = async (req, res) => {
+//   try {
+//     // ✅ Fetch user first
+//     const user = await User.findById(req.user.id).select("email");
+
+//     if (!user || !user.email) {
+//       return res.json({ prefillAvailable: false });
+//     }
+
+//     // ✅ Normalize email
+//     const email = user.email.toLowerCase().trim();
+
+//     const candidate = await Candidate.findOne({ email });
+
+//     if (!candidate) {
+//       return res.json({ prefillAvailable: false });
+//     }
+
+//     const prefillData = {
+//       personal: {
+//         firstName: candidate.firstName,
+//         lastName: candidate.lastName,
+//         email: candidate.email,
+//         phone: candidate.phone,
+//         alternativePhone: candidate.alternatePhone
+//       },
+//       educations: [
+//         {
+//           educationLevel: candidate.course,
+//           department: candidate.department,
+//           collegeName: candidate.college
+//         }
+//       ],
+//       professional: {
+//         jobType: candidate.employeeType,
+//         companyName: candidate.companyName || "",
+//         duration: candidate.experienceYears || "",
+//         skills: candidate.skills || [],
+//         resumeUrl: candidate.resume || ""
+//       }
+//     };
+
+//     res.status(200).json({
+//       prefillAvailable: true,
+//       data: prefillData
+//     });
+
+//   } catch (err) {
+//     console.error("Prefill error:", err);
+//     res.status(500).json({ message: "Server error" });
+//   }
+// };
+
 exports.prefillApplication = async (req, res) => {
   try {
-    // ✅ Fetch user first
     const user = await User.findById(req.user.id).select("email");
+    if (!user?.email) return res.json({ prefillAvailable: false });
 
-    if (!user || !user.email) {
-      return res.json({ prefillAvailable: false });
-    }
-
-    // ✅ Normalize email
     const email = user.email.toLowerCase().trim();
-
     const candidate = await Candidate.findOne({ email });
 
-    if (!candidate) {
-      return res.json({ prefillAvailable: false });
-    }
+    if (!candidate) return res.json({ prefillAvailable: false });
 
     const prefillData = {
       personal: {
@@ -179,31 +224,162 @@ exports.prefillApplication = async (req, res) => {
         lastName: candidate.lastName,
         email: candidate.email,
         phone: candidate.phone,
-        alternativePhone: candidate.alternatePhone
+        alternatePhone: candidate.alternatePhone,
       },
-      educations: [
-        {
-          educationLevel: candidate.course,
-          department: candidate.department,
-          collegeName: candidate.college
-        }
-      ],
+      educations: candidate.educations?.length
+        ? candidate.educations
+        : [
+            {
+              course: candidate.course || "",
+              department: candidate.department || "",
+              collegeName: candidate.college || "",
+              yearOfPassing: "",
+            },
+          ],
       professional: {
-        jobType: candidate.employeeType,
-        companyName: candidate.companyName || "",
-        duration: candidate.experienceYears || "",
-        skills: candidate.skills || [],
-        resumeUrl: candidate.resume || ""
-      }
+        jobType: candidate.employeeType || "",
+        currentCompany: candidate.companyName || "",
+        designation: "",
+        skills: candidate.professional?.skills?.length
+          ? candidate.professional.skills
+          : candidate.skills || [],
+        certifications: candidate.professional?.certifications || [],
+        projects: candidate.professional?.projects || [],
+        experiences: candidate.professional?.experiences || [],
+        salary: candidate.professional?.salary || "",
+        resume: candidate.professional?.resume || candidate.resume || "",
+      },
     };
 
     res.status(200).json({
       prefillAvailable: true,
-      data: prefillData
+      data: prefillData,
     });
-
   } catch (err) {
     console.error("Prefill error:", err);
     res.status(500).json({ message: "Server error" });
+  }
+};
+
+///saveOrUpdateProfile
+// exports.saveOrUpdateProfile = async (req, res) => {
+//   try {
+//     const user = await User.findById(req.user.id).select("email");
+
+//     if (!user || !user.email) {
+//       return res.status(401).json({ success: false, message: "Unauthorized" });
+//     }
+
+//     const email = user.email.toLowerCase().trim();
+//     const profileData = JSON.parse(req.body.profile);
+
+//     // ✅ Handle resume upload
+//     if (req.files?.resume?.[0]) {
+//       const resumeUrl = await uploadToAzure(
+//         req.files.resume[0].buffer,
+//         req.files.resume[0].originalname,
+//         req.files.resume[0].mimetype
+//       );
+//       profileData.professional.resume = resumeUrl;
+//     }
+
+//     // ✅ Handle photo upload (optional)
+//     if (req.files?.photo?.[0]) {
+//       const photoUrl = await uploadToAzure(
+//         req.files.photo[0].buffer,
+//         req.files.photo[0].originalname,
+//         req.files.photo[0].mimetype
+//       );
+//       profileData.personal.photo = photoUrl;
+//     }
+
+//     const candidate = await Candidate.findOneAndUpdate(
+//       { email },
+//       {
+//         $set: {
+//           ...profileData.personal,
+//           educations: profileData.educations,
+//           professional: profileData.professional,
+//         },
+//       },
+//       { new: true, upsert: true }
+//     );
+
+//     res.json({
+//       success: true,
+//       profilePic: candidate.personal?.photo || null,
+//     });
+//   } catch (err) {
+//     console.error("Profile save error:", err);
+//     res.status(500).json({ success: false, message: "Profile save failed" });
+//   }
+// };
+exports.saveOrUpdateProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("email");
+    if (!user?.email)
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+
+    const email = user.email.toLowerCase().trim();
+    const profileData = JSON.parse(req.body.profile);
+
+    const candidate = await Candidate.findOne({ email });
+
+    // ✅ Resume
+    if (req.files?.resume?.[0]) {
+      profileData.professional.resume = await uploadToAzure(
+        req.files.resume[0].buffer,
+        req.files.resume[0].originalname,
+        req.files.resume[0].mimetype
+      );
+    }
+
+    // ✅ Photo
+    if (req.files?.photo?.[0]) {
+      profileData.photo = await uploadToAzure(
+        req.files.photo[0].buffer,
+        req.files.photo[0].originalname,
+        req.files.photo[0].mimetype
+      );
+    }
+
+    // ✅ BACKFILL EDUCATION ON FIRST SAVE
+    if (
+      (!profileData.educations || profileData.educations.length === 0) &&
+      candidate
+    ) {
+      profileData.educations = [
+        {
+          course: candidate.course || "",
+          department: candidate.department || "",
+          collegeName: candidate.college || "",
+          yearOfPassing: "",
+        },
+      ];
+    }
+
+    const updated = await Candidate.findOneAndUpdate(
+      { email },
+      {
+        $set: {
+          firstName: profileData.personal.firstName,
+          lastName: profileData.personal.lastName,
+          phone: profileData.personal.phone,
+          alternatePhone: profileData.personal.alternatePhone,
+          educations: profileData.educations,
+          professional: profileData.professional,
+          photo: profileData.photo,
+        },
+      },
+      { new: true, upsert: true }
+    );
+
+    res.json({
+      success: true,
+      profilePic: updated.photo || null,
+    });
+  } catch (err) {
+    console.error("Profile save error:", err);
+    res.status(500).json({ success: false, message: "Profile save failed" });
   }
 };
