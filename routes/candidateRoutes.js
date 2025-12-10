@@ -27,15 +27,15 @@ router.get(
   prefillApplication
 );
 
-router.post(
-  "/profile",
-  authMiddleware,
-  upload.fields([
-    { name: "resume", maxCount: 1 },
-    { name: "photo", maxCount: 1 },
-  ]),
-  saveOrUpdateProfile
-);
+// router.post(
+//   "/profile",
+//   authMiddleware,
+//   upload.fields([
+//     { name: "resume", maxCount: 1 },
+//     { name: "photo", maxCount: 1 },
+//   ]),
+//   saveOrUpdateProfile
+// );
 
 router.get("/email/:email", getCandidateByEmail);
 

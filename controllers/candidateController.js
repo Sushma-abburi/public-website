@@ -4,123 +4,123 @@ const User = require("../models/User");   // ✅ ADD THIS
 const uploadToAzure = require("../utils/uploadToAzure");
 const jwt = require("jsonwebtoken");
 
-// exports.createCandidate = async (req, res) => {
-//   try {
-//     const data = req.body;
-
-//     // ✅ FIND USER BY EMAIL
-//     const user = await User.findOne({ email: data.email });
-
-//     if (!user) {
-//       return res.status(404).json({ message: "User not found" });
-//     }
-
-//     // ✅ Generate Email Token
-//     const emailToken = jwt.sign(
-//       { email: data.email }, 
-//       process.env.JWT_SECRET, 
-//       { expiresIn: "1h" }
-//     );
-
-//     data.emailToken = emailToken;
-
-//     // ✅ Upload resume to Azure
-//     if (req.file) {
-//       const url = await uploadToAzure(
-//         req.file.buffer,
-//         req.file.originalname,
-//         req.file.mimetype
-//       );
-//       data.resume = url;
-//     }
-
-//     // ✅ SAVE CANDIDATE
-//     const candidate = await Candidate.create(data);
-
-//     // // ✅ ✅ ✅ MARK PROFILE AS COMPLETED
-//     // user.isProfileCompleted = true;
-//     // await user.save();
-
-//     // ✅ MARK PROFILE AS COMPLETED + UPDATE NAME
-//     user.firstName = data.firstName;
-//     user.lastName = data.lastName;
-//     user.isProfileCompleted = true;
-//     await user.save();
-
-
-//     const verificationLink = `https://your-frontend.com/candidate/verify?token=${emailToken}`;
-
-//     res.status(201).json({
-//       message: "Candidate created",
-//       candidate,
-//       user: {
-//     firstName: user.firstName,
-//     lastName: user.lastName,
-//     email: user.email,
-//    },
-//       isProfileCompleted: true,   // ✅ Optional useful response
-//       emailVerificationLink: verificationLink,
-//     });
-
-//   } catch (error) {
-//     res.status(500).json({ message: error.message });
-//   }
-// };
 exports.createCandidate = async (req, res) => {
   try {
-    if (!req.body?.profile) {
-      return res.status(400).json({ message: "Profile data missing" });
+    const data = req.body;
+
+    // ✅ FIND USER BY EMAIL
+    const user = await User.findOne({ email: data.email });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
     }
 
-    const parsed = JSON.parse(req.body.profile);
-    const { personal, job } = parsed;
-
-    if (!personal?.email || !personal?.firstName || !personal?.lastName) {
-      return res.status(400).json({ message: "Personal details incomplete" });
-    }
-
-    const user = await User.findOne({ email: personal.email });
-    if (!user) return res.status(404).json({ message: "User not found" });
-
+    // ✅ Generate Email Token
     const emailToken = jwt.sign(
-      { email: personal.email },
-      process.env.JWT_SECRET,
+      { email: data.email }, 
+      process.env.JWT_SECRET, 
       { expiresIn: "1h" }
     );
 
-    const data = {
-      ...personal,
-      ...job,
-      emailToken,
-    };
+    data.emailToken = emailToken;
 
+    // ✅ Upload resume to Azure
     if (req.file) {
-      data.resume = await uploadToAzure(
+      const url = await uploadToAzure(
         req.file.buffer,
         req.file.originalname,
         req.file.mimetype
       );
+      data.resume = url;
     }
 
+    // ✅ SAVE CANDIDATE
     const candidate = await Candidate.create(data);
 
-    // ✅ User update (NOW SAFE)
-    user.firstName = personal.firstName;
-    user.lastName = personal.lastName;
+    // // ✅ ✅ ✅ MARK PROFILE AS COMPLETED
+    // user.isProfileCompleted = true;
+    // await user.save();
+
+    // ✅ MARK PROFILE AS COMPLETED + UPDATE NAME
+    user.firstName = data.firstName;
+    user.lastName = data.lastName;
     user.isProfileCompleted = true;
     await user.save();
+
+
+    const verificationLink = `https://your-frontend.com/candidate/verify?token=${emailToken}`;
 
     res.status(201).json({
       message: "Candidate created",
       candidate,
-      isProfileCompleted: true,
+      user: {
+    firstName: user.firstName,
+    lastName: user.lastName,
+    email: user.email,
+   },
+      isProfileCompleted: true,   // ✅ Optional useful response
+      emailVerificationLink: verificationLink,
     });
 
-  } catch (err) {
-    console.error("CREATE CANDIDATE ERROR:", err);
-    res.status(500).json({ message: err.message });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };
+// exports.createCandidate = async (req, res) => {
+//   try {
+//     if (!req.body?.profile) {
+//       return res.status(400).json({ message: "Profile data missing" });
+//     }
+
+//     const parsed = JSON.parse(req.body.profile);
+//     const { personal, job } = parsed;
+
+//     if (!personal?.email || !personal?.firstName || !personal?.lastName) {
+//       return res.status(400).json({ message: "Personal details incomplete" });
+//     }
+
+//     const user = await User.findOne({ email: personal.email });
+//     if (!user) return res.status(404).json({ message: "User not found" });
+
+//     const emailToken = jwt.sign(
+//       { email: personal.email },
+//       process.env.JWT_SECRET,
+//       { expiresIn: "1h" }
+//     );
+
+//     const data = {
+//       ...personal,
+//       ...job,
+//       emailToken,
+//     };
+
+//     if (req.file) {
+//       data.resume = await uploadToAzure(
+//         req.file.buffer,
+//         req.file.originalname,
+//         req.file.mimetype
+//       );
+//     }
+
+//     const candidate = await Candidate.create(data);
+
+//     // ✅ User update (NOW SAFE)
+//     user.firstName = personal.firstName;
+//     user.lastName = personal.lastName;
+//     user.isProfileCompleted = true;
+//     await user.save();
+
+//     res.status(201).json({
+//       message: "Candidate created",
+//       candidate,
+//       isProfileCompleted: true,
+//     });
+
+//   } catch (err) {
+//     console.error("CREATE CANDIDATE ERROR:", err);
+//     res.status(500).json({ message: err.message });
+//   }
+// };
 
 
 exports.getAllCandidates = async (req, res) => {
@@ -369,72 +369,72 @@ exports.prefillApplication = async (req, res) => {
 //     res.status(500).json({ success: false, message: "Profile save failed" });
 //   }
 // };
-exports.saveOrUpdateProfile = async (req, res) => {
-  try {
-    const user = await User.findById(req.user.id).select("email");
-    if (!user?.email)
-      return res.status(401).json({ success: false, message: "Unauthorized" });
+// exports.saveOrUpdateProfile = async (req, res) => {
+//   try {
+//     const user = await User.findById(req.user.id).select("email");
+//     if (!user?.email)
+//       return res.status(401).json({ success: false, message: "Unauthorized" });
 
-    const email = user.email.toLowerCase().trim();
-    const profileData = JSON.parse(req.body.profile);
+//     const email = user.email.toLowerCase().trim();
+//     const profileData = JSON.parse(req.body.profile);
 
-    const candidate = await Candidate.findOne({ email });
+//     const candidate = await Candidate.findOne({ email });
 
-    // ✅ Resume
-    if (req.files?.resume?.[0]) {
-      profileData.professional.resume = await uploadToAzure(
-        req.files.resume[0].buffer,
-        req.files.resume[0].originalname,
-        req.files.resume[0].mimetype
-      );
-    }
+//     // ✅ Resume
+//     if (req.files?.resume?.[0]) {
+//       profileData.professional.resume = await uploadToAzure(
+//         req.files.resume[0].buffer,
+//         req.files.resume[0].originalname,
+//         req.files.resume[0].mimetype
+//       );
+//     }
 
-    // ✅ Photo
-    if (req.files?.photo?.[0]) {
-      profileData.photo = await uploadToAzure(
-        req.files.photo[0].buffer,
-        req.files.photo[0].originalname,
-        req.files.photo[0].mimetype
-      );
-    }
+//     // ✅ Photo
+//     if (req.files?.photo?.[0]) {
+//       profileData.photo = await uploadToAzure(
+//         req.files.photo[0].buffer,
+//         req.files.photo[0].originalname,
+//         req.files.photo[0].mimetype
+//       );
+//     }
 
-    // ✅ BACKFILL EDUCATION ON FIRST SAVE
-    if (
-      (!profileData.educations || profileData.educations.length === 0) &&
-      candidate
-    ) {
-      profileData.educations = [
-        {
-          course: candidate.course || "",
-          department: candidate.department || "",
-          collegeName: candidate.college || "",
-          yearOfPassing: "",
-        },
-      ];
-    }
+//     // ✅ BACKFILL EDUCATION ON FIRST SAVE
+//     if (
+//       (!profileData.educations || profileData.educations.length === 0) &&
+//       candidate
+//     ) {
+//       profileData.educations = [
+//         {
+//           course: candidate.course || "",
+//           department: candidate.department || "",
+//           collegeName: candidate.college || "",
+//           yearOfPassing: "",
+//         },
+//       ];
+//     }
 
-    const updated = await Candidate.findOneAndUpdate(
-      { email },
-      {
-        $set: {
-          firstName: profileData.personal.firstName,
-          lastName: profileData.personal.lastName,
-          phone: profileData.personal.phone,
-          alternatePhone: profileData.personal.alternatePhone,
-          educations: profileData.educations,
-          professional: profileData.professional,
-          photo: profileData.photo,
-        },
-      },
-      { new: true, upsert: true }
-    );
+//     const updated = await Candidate.findOneAndUpdate(
+//       { email },
+//       {
+//         $set: {
+//           firstName: profileData.personal.firstName,
+//           lastName: profileData.personal.lastName,
+//           phone: profileData.personal.phone,
+//           alternatePhone: profileData.personal.alternatePhone,
+//           educations: profileData.educations,
+//           professional: profileData.professional,
+//           photo: profileData.photo,
+//         },
+//       },
+//       { new: true, upsert: true }
+//     );
 
-    res.json({
-      success: true,
-      profilePic: updated.photo || null,
-    });
-  } catch (err) {
-    console.error("Profile save error:", err);
-    res.status(500).json({ success: false, message: "Profile save failed" });
-  }
-};
+//     res.json({
+//       success: true,
+//       profilePic: updated.photo || null,
+//     });
+//   } catch (err) {
+//     console.error("Profile save error:", err);
+//     res.status(500).json({ success: false, message: "Profile save failed" });
+//   }
+// };
