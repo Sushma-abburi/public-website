@@ -1,6 +1,6 @@
 const Candidate = require("../models/Candidate");
-const User = require("../models/User");   // ✅ ADD THIS
-const Application = require("../models/Application"); //ADD THIS
+const User = require("../models/User");   // ✅ ADD THIS.
+const Application = require("../models/Application"); //ADD THIS..
 const uploadToAzure = require("../utils/uploadToAzure");
 const jwt = require("jsonwebtoken");
 
@@ -252,7 +252,7 @@ exports.getProfilePrefillFromJob = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    const lastApp = await JobApplication.findOne({ userId }).sort({ createdAt: -1 });
+    const lastApp = await Application.findOne({ userId }).sort({ createdAt: -1 });
     const candidate = await Candidate.findOne({ userId });
 
     if (!lastApp && !candidate) {
