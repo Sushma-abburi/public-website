@@ -1,6 +1,6 @@
 const Candidate = require("../models/Candidate");
 const User = require("../models/User");   // ✅ ADD THIS
-
+const Application = require("../models/Application"); //ADD THIS
 const uploadToAzure = require("../utils/uploadToAzure");
 const jwt = require("jsonwebtoken");
 
@@ -66,63 +66,8 @@ exports.createCandidate = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-// exports.createCandidate = async (req, res) => {
-//   try {
-//     if (!req.body?.profile) {
-//       return res.status(400).json({ message: "Profile data missing" });
-//     }
 
-//     const parsed = JSON.parse(req.body.profile);
-//     const { personal, job } = parsed;
-
-//     if (!personal?.email || !personal?.firstName || !personal?.lastName) {
-//       return res.status(400).json({ message: "Personal details incomplete" });
-//     }
-
-//     const user = await User.findOne({ email: personal.email });
-//     if (!user) return res.status(404).json({ message: "User not found" });
-
-//     const emailToken = jwt.sign(
-//       { email: personal.email },
-//       process.env.JWT_SECRET,
-//       { expiresIn: "1h" }
-//     );
-
-//     const data = {
-//       ...personal,
-//       ...job,
-//       emailToken,
-//     };
-
-//     if (req.file) {
-//       data.resume = await uploadToAzure(
-//         req.file.buffer,
-//         req.file.originalname,
-//         req.file.mimetype
-//       );
-//     }
-
-//     const candidate = await Candidate.create(data);
-
-//     // ✅ User update (NOW SAFE)
-//     user.firstName = personal.firstName;
-//     user.lastName = personal.lastName;
-//     user.isProfileCompleted = true;
-//     await user.save();
-
-//     res.status(201).json({
-//       message: "Candidate created",
-//       candidate,
-//       isProfileCompleted: true,
-//     });
-
-//   } catch (err) {
-//     console.error("CREATE CANDIDATE ERROR:", err);
-//     res.status(500).json({ message: err.message });
-//   }
-// };
-
-
+//GET ALL CANDIDATES
 exports.getAllCandidates = async (req, res) => {
   try {
     const candidates = await Candidate.find();
@@ -132,7 +77,7 @@ exports.getAllCandidates = async (req, res) => {
   }
 };
 
-
+//GET CANDIDATE BY ID
 exports.getCandidateById = async (req, res) => {
   try {
     const candidate = await Candidate.findById(req.params.id);
@@ -144,7 +89,7 @@ exports.getCandidateById = async (req, res) => {
   }
 };
 
-
+//UPDATE CANDIDATE
 exports.updateCandidate = async (req, res) => {
   try {
     const data = req.body;
@@ -181,7 +126,7 @@ exports.updateCandidate = async (req, res) => {
 };
 
 
-
+//DELETE CANDIDATE
 exports.deleteCandidate = async (req, res) => {
   try {
     const deleted = await Candidate.findByIdAndDelete(req.params.id);
@@ -192,6 +137,8 @@ exports.deleteCandidate = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+//GET CANDIDATE BY EMAIL
 exports.getCandidateByEmail = async (req, res) => {
   try {
     const { email } = req.params;
@@ -209,60 +156,7 @@ exports.getCandidateByEmail = async (req, res) => {
   }
 };
 
-////prefill details
-// exports.prefillApplication = async (req, res) => {
-//   try {
-//     // ✅ Fetch user first
-//     const user = await User.findById(req.user.id).select("email");
-
-//     if (!user || !user.email) {
-//       return res.json({ prefillAvailable: false });
-//     }
-
-//     // ✅ Normalize email
-//     const email = user.email.toLowerCase().trim();
-
-//     const candidate = await Candidate.findOne({ email });
-
-//     if (!candidate) {
-//       return res.json({ prefillAvailable: false });
-//     }
-
-//     const prefillData = {
-//       personal: {
-//         firstName: candidate.firstName,
-//         lastName: candidate.lastName,
-//         email: candidate.email,
-//         phone: candidate.phone,
-//         alternativePhone: candidate.alternatePhone
-//       },
-//       educations: [
-//         {
-//           educationLevel: candidate.course,
-//           department: candidate.department,
-//           collegeName: candidate.college
-//         }
-//       ],
-//       professional: {
-//         jobType: candidate.employeeType,
-//         companyName: candidate.companyName || "",
-//         duration: candidate.experienceYears || "",
-//         skills: candidate.skills || [],
-//         resumeUrl: candidate.resume || ""
-//       }
-//     };
-
-//     res.status(200).json({
-//       prefillAvailable: true,
-//       data: prefillData
-//     });
-
-//   } catch (err) {
-//     console.error("Prefill error:", err);
-//     res.status(500).json({ message: "Server error" });
-//   }
-// };
-
+//OLD PREFILL FROM CANDIDATE PROFILE (USED IN JOB FORM)
 exports.prefillApplication = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select("email");
@@ -316,125 +210,175 @@ exports.prefillApplication = async (req, res) => {
   }
 };
 
-///saveOrUpdateProfile
-// exports.saveOrUpdateProfile = async (req, res) => {
-//   try {
-//     const user = await User.findById(req.user.id).select("email");
+/* =========================================================
+   NEW FUNCTION 1:
+   PREFILL BASIC DETAILS FOR JOB APPLICATION FORM
+   (from Candidate Profile ONLY)
+========================================================= */
+exports.getBasicDetailsForApplication = async (req, res) => {
+  try {
+    const userId = req.user.id;
 
-//     if (!user || !user.email) {
-//       return res.status(401).json({ success: false, message: "Unauthorized" });
-//     }
+    const candidate = await Candidate.findOne({ userId });
 
-//     const email = user.email.toLowerCase().trim();
-//     const profileData = JSON.parse(req.body.profile);
+    if (!candidate) {
+      return res.json({ success: true, data: null });
+    }
 
-//     // ✅ Handle resume upload
-//     if (req.files?.resume?.[0]) {
-//       const resumeUrl = await uploadToAzure(
-//         req.files.resume[0].buffer,
-//         req.files.resume[0].originalname,
-//         req.files.resume[0].mimetype
-//       );
-//       profileData.professional.resume = resumeUrl;
-//     }
+    res.json({
+      success: true,
+      data: {
+        personal: candidate.personal || {},
+        educations: candidate.educations || [],
+        professional: {
+          jobType: candidate.professional?.jobType || "",
+          skills: candidate.professional?.skills || [],
+        }
+      }
+    });
 
-//     // ✅ Handle photo upload (optional)
-//     if (req.files?.photo?.[0]) {
-//       const photoUrl = await uploadToAzure(
-//         req.files.photo[0].buffer,
-//         req.files.photo[0].originalname,
-//         req.files.photo[0].mimetype
-//       );
-//       profileData.personal.photo = photoUrl;
-//     }
+  } catch (err) {
+    console.error("Basic Details Prefill Error:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+};
 
-//     const candidate = await Candidate.findOneAndUpdate(
-//       { email },
-//       {
-//         $set: {
-//           ...profileData.personal,
-//           educations: profileData.educations,
-//           professional: profileData.professional,
-//         },
-//       },
-//       { new: true, upsert: true }
-//     );
 
-//     res.json({
-//       success: true,
-//       profilePic: candidate.personal?.photo || null,
-//     });
-//   } catch (err) {
-//     console.error("Profile save error:", err);
-//     res.status(500).json({ success: false, message: "Profile save failed" });
-//   }
-// };
-// exports.saveOrUpdateProfile = async (req, res) => {
-//   try {
-//     const user = await User.findById(req.user.id).select("email");
-//     if (!user?.email)
-//       return res.status(401).json({ success: false, message: "Unauthorized" });
+/* =========================================================
+   NEW FUNCTION 2:
+   PREFILL PROFILE PAGE FROM JOB APPLICATION (fallback to candidate)
+========================================================= */
+exports.getProfilePrefillFromJob = async (req, res) => {
+  try {
+    const userId = req.user.id;
 
-//     const email = user.email.toLowerCase().trim();
-//     const profileData = JSON.parse(req.body.profile);
+    const lastApp = await JobApplication.findOne({ userId }).sort({ createdAt: -1 });
+    const candidate = await Candidate.findOne({ userId });
 
-//     const candidate = await Candidate.findOne({ email });
+    if (!lastApp && !candidate) {
+      return res.json({ prefillAvailable: false, data: {} });
+    }
 
-//     // ✅ Resume
-//     if (req.files?.resume?.[0]) {
-//       profileData.professional.resume = await uploadToAzure(
-//         req.files.resume[0].buffer,
-//         req.files.resume[0].originalname,
-//         req.files.resume[0].mimetype
-//       );
-//     }
+    const result = {
+      personal: {
+        firstName: lastApp?.personal?.firstName || candidate?.firstName || "",
+        lastName: lastApp?.personal?.lastName || candidate?.lastName || "",
+        email: lastApp?.personal?.email || candidate?.email || "",
+        phone: lastApp?.personal?.phone || candidate?.phone || "",
+        currentAddress:
+          lastApp?.personal?.currentAddress ||
+          candidate?.personal?.currentAddress ||
+          "",
+      },
 
-//     // ✅ Photo
-//     if (req.files?.photo?.[0]) {
-//       profileData.photo = await uploadToAzure(
-//         req.files.photo[0].buffer,
-//         req.files.photo[0].originalname,
-//         req.files.photo[0].mimetype
-//       );
-//     }
+      educations: lastApp?.educations?.length
+        ? lastApp.educations
+        : candidate?.educations || [],
 
-//     // ✅ BACKFILL EDUCATION ON FIRST SAVE
-//     if (
-//       (!profileData.educations || profileData.educations.length === 0) &&
-//       candidate
-//     ) {
-//       profileData.educations = [
-//         {
-//           course: candidate.course || "",
-//           department: candidate.department || "",
-//           collegeName: candidate.college || "",
-//           yearOfPassing: "",
-//         },
-//       ];
-//     }
+      professional: {
+        jobType: lastApp?.professional?.jobType || candidate?.professional?.jobType || "",
+        currentCompany: lastApp?.professional?.currentCompany || candidate?.professional?.currentCompany || "",
+        designation: lastApp?.professional?.designation || candidate?.professional?.designation || "",
+        website: lastApp?.professional?.website || candidate?.professional?.website || "",
+        linkedin: lastApp?.professional?.linkedin || candidate?.professional?.linkedin || "",
+        github: lastApp?.professional?.github || candidate?.professional?.github || "",
+        skills: lastApp?.professional?.skills?.length
+          ? lastApp.professional.skills
+          : candidate?.professional?.skills || [],
+        certifications: lastApp?.professional?.certifications?.length
+          ? lastApp.professional.certifications
+          : candidate?.professional?.certifications || [],
+        projects: lastApp?.professional?.projects?.length
+          ? lastApp.professional.projects
+          : candidate?.professional?.projects || [],
+        experiences: lastApp?.professional?.experiences?.length
+          ? lastApp.professional.experiences
+          : candidate?.professional?.experiences || [],
+        achievements: lastApp?.professional?.achievements || candidate?.professional?.achievements || "",
+        salary: lastApp?.professional?.salary || candidate?.professional?.salary || "",
+        resume: lastApp?.professional?.resume || candidate?.professional?.resume || null,
+      }
+    };
 
-//     const updated = await Candidate.findOneAndUpdate(
-//       { email },
-//       {
-//         $set: {
-//           firstName: profileData.personal.firstName,
-//           lastName: profileData.personal.lastName,
-//           phone: profileData.personal.phone,
-//           alternatePhone: profileData.personal.alternatePhone,
-//           educations: profileData.educations,
-//           professional: profileData.professional,
-//           photo: profileData.photo,
-//         },
-//       },
-//       { new: true, upsert: true }
-//     );
+    res.json({ prefillAvailable: true, data: result });
 
-//     res.json({
-//       success: true,
-//       profilePic: updated.photo || null,
-//     });
-//   } catch (err) {
-//     console.error("Profile save error:", err);
-//     res.status(500).json({ success: false, message: "Profile save failed" });
-//   }
-// };
+  } catch (err) {
+    console.error("Profile Prefill Error:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+//update profile user
+exports.updateUserProfile = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Parse the profile JSON sent from frontend
+    const parsedProfile = JSON.parse(req.body.profile || "{}");
+
+    let candidate = await Candidate.findOne({ userId });
+
+    // If candidate profile doesn't exist → create it
+    if (!candidate) {
+      candidate = new Candidate({ userId });
+    }
+
+    /* ------------------------------------------
+       MERGE PERSONAL
+    --------------------------------------------- */
+    candidate.personal = {
+      ...candidate.personal,
+      ...parsedProfile.personal,
+    };
+
+    /* ------------------------------------------
+       MERGE EDUCATIONS
+    --------------------------------------------- */
+    candidate.educations = parsedProfile.educations || candidate.educations;
+
+    /* ------------------------------------------
+       MERGE PROFESSIONAL
+    --------------------------------------------- */
+    candidate.professional = {
+      ...candidate.professional,
+      ...parsedProfile.professional,
+    };
+
+    /* ------------------------------------------
+       FILE UPLOADS
+    --------------------------------------------- */
+
+    // Photo upload
+    if (req.files?.photo?.[0]) {
+      const url = await uploadToAzure(
+        req.files.photo[0].buffer,
+        req.files.photo[0].originalname,
+        req.files.photo[0].mimetype
+      );
+      candidate.personal.photo = url;
+    }
+
+    // Resume upload
+    if (req.files?.resume?.[0]) {
+      const url = await uploadToAzure(
+        req.files.resume[0].buffer,
+        req.files.resume[0].originalname,
+        req.files.resume[0].mimetype
+      );
+      candidate.professional.resume = url;
+    }
+
+    // Save updates
+    await candidate.save();
+
+    res.json({
+      success: true,
+      message: "Profile updated successfully",
+      data: candidate,
+      profilePic: candidate.personal.photo,
+    });
+
+  } catch (err) {
+    console.error("Update Profile Error:", err);
+    res.status(500).json({ error: "Server error updating profile" });
+  }
+};

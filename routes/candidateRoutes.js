@@ -2,7 +2,10 @@ const express = require("express");
 const router = express.Router();
 const upload = require("../middleware/uploadResume");
 const authMiddleware = require("../middleware/authMiddleware");
-
+const uploadProfile = require("../middleware/uploadResume").fields([
+  { name: "photo", maxCount: 1 },
+  { name: "resume", maxCount: 1 }
+]);
 const {
   createCandidate,
   getAllCandidates,
@@ -11,7 +14,9 @@ const {
   deleteCandidate,
   getCandidateByEmail,
   prefillApplication,
-  saveOrUpdateProfile
+  getBasicDetailsForApplication,
+  getProfilePrefillFromJob,
+  updateUserProfile,
 } = require("../controllers/candidateController");
 
 // CREATE
@@ -20,22 +25,33 @@ router.post("/save", upload.single("resume"), createCandidate);
 // READ
 router.get("/", getAllCandidates);
 
-// ✅ PREFILL MUST COME BEFORE :id
+//PREFILL BASIC DETAILS FOR JOB APPLICATION FORM
+ router.get("/basic-details",
+  authMiddleware,
+  getBasicDetailsForApplication
+ );
+
+ //PREFILL PROFILE PAGE (JO APPLICAION -> FALLBACK PROFILE )
+ router.get(
+  "/prefill-profile",
+  authMiddleware,
+  getProfilePrefillFromJob
+ );
+
+ //profile update
+ router.post(
+  "/update-profile",
+  authMiddleware,
+  uploadProfile,
+  updateUserProfile
+ )
+//  PREFILL MUST COME BEFORE :id
 router.get(
   "/prefill-application",
   authMiddleware,
   prefillApplication
 );
 
-// router.post(
-//   "/profile",
-//   authMiddleware,
-//   upload.fields([
-//     { name: "resume", maxCount: 1 },
-//     { name: "photo", maxCount: 1 },
-//   ]),
-//   saveOrUpdateProfile
-// );
 
 router.get("/email/:email", getCandidateByEmail);
 
