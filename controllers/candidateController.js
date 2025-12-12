@@ -217,9 +217,10 @@ exports.prefillApplication = async (req, res) => {
 ========================================================= */
 exports.getBasicDetailsForApplication = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const user = await User.findById(req.user.id).select("email");
+    if (!user) return res.json({ success: true, data: null });
 
-    const candidate = await Candidate.findOne({ userId });
+    const candidate = await Candidate.findOne({ email: user.email });
 
     if (!candidate) {
       return res.json({ success: true, data: null });
@@ -250,10 +251,17 @@ exports.getBasicDetailsForApplication = async (req, res) => {
 ========================================================= */
 exports.getProfilePrefillFromJob = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const user = await User.findById(req.user.id).select("email");
+    if (!user?.email) return res.json({ prefillAvailable: false });
 
-    const lastApp = await Application.findOne({ userId }).sort({ createdAt: -1 });
-    const candidate = await Candidate.findOne({ userId });
+    const email = user.email.toLowerCase().trim();
+
+    // Find latest job application by email (NOT userId)
+    const lastApp = await Application
+      .findOne({ "personal.email": email })
+      .sort({ createdAt: -1 });
+
+    const candidate = await Candidate.findOne({ email });
 
     if (!lastApp && !candidate) {
       return res.json({ prefillAvailable: false, data: {} });
@@ -261,10 +269,10 @@ exports.getProfilePrefillFromJob = async (req, res) => {
 
     const result = {
       personal: {
-        firstName: lastApp?.personal?.firstName || candidate?.firstName || "",
-        lastName: lastApp?.personal?.lastName || candidate?.lastName || "",
-        email: lastApp?.personal?.email || candidate?.email || "",
-        phone: lastApp?.personal?.phone || candidate?.phone || "",
+        firstName: lastApp?.personal?.firstName || candidate?.personal?.firstName || "",
+        lastName: lastApp?.personal?.lastName || candidate?.personal?.lastName || "",
+        email,
+        phone: lastApp?.personal?.phone || candidate?.personal?.phone || "",
         currentAddress:
           lastApp?.personal?.currentAddress ||
           candidate?.personal?.currentAddress ||
@@ -277,26 +285,16 @@ exports.getProfilePrefillFromJob = async (req, res) => {
 
       professional: {
         jobType: lastApp?.professional?.jobType || candidate?.professional?.jobType || "",
-        currentCompany: lastApp?.professional?.currentCompany || candidate?.professional?.currentCompany || "",
-        designation: lastApp?.professional?.designation || candidate?.professional?.designation || "",
-        website: lastApp?.professional?.website || candidate?.professional?.website || "",
-        linkedin: lastApp?.professional?.linkedin || candidate?.professional?.linkedin || "",
-        github: lastApp?.professional?.github || candidate?.professional?.github || "",
         skills: lastApp?.professional?.skills?.length
           ? lastApp.professional.skills
           : candidate?.professional?.skills || [],
-        certifications: lastApp?.professional?.certifications?.length
-          ? lastApp.professional.certifications
-          : candidate?.professional?.certifications || [],
-        projects: lastApp?.professional?.projects?.length
-          ? lastApp.professional.projects
-          : candidate?.professional?.projects || [],
-        experiences: lastApp?.professional?.experiences?.length
-          ? lastApp.professional.experiences
-          : candidate?.professional?.experiences || [],
+        certifications: lastApp?.professional?.certifications || candidate?.professional?.certifications || [],
+        projects: lastApp?.professional?.projects || candidate?.professional?.projects || [],
+        experiences: lastApp?.professional?.experiences || candidate?.professional?.experiences || [],
+        linkedin: lastApp?.professional?.linkedin || candidate?.professional?.linkedin || "",
         achievements: lastApp?.professional?.achievements || candidate?.professional?.achievements || "",
         salary: lastApp?.professional?.salary || candidate?.professional?.salary || "",
-        resume: lastApp?.professional?.resume || candidate?.professional?.resume || null,
+        resume: lastApp?.professional?.resumeUrl || candidate?.professional?.resume || null,
       }
     };
 
@@ -312,42 +310,33 @@ exports.updateUserProfile = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // Parse the profile JSON sent from frontend
     const parsedProfile = JSON.parse(req.body.profile || "{}");
 
     let candidate = await Candidate.findOne({ userId });
 
-    // If candidate profile doesn't exist → create it
     if (!candidate) {
       candidate = new Candidate({ userId });
     }
 
-    /* ------------------------------------------
-       MERGE PERSONAL
-    --------------------------------------------- */
+    // MERGE PERSONAL
     candidate.personal = {
       ...candidate.personal,
       ...parsedProfile.personal,
     };
 
-    /* ------------------------------------------
-       MERGE EDUCATIONS
-    --------------------------------------------- */
+    // FIX: ensure top-level email exists (prevents validation error)
+    candidate.email = parsedProfile.personal?.email || candidate.email;
+
+    // MERGE EDUCATIONS
     candidate.educations = parsedProfile.educations || candidate.educations;
 
-    /* ------------------------------------------
-       MERGE PROFESSIONAL
-    --------------------------------------------- */
+    // MERGE PROFESSIONAL
     candidate.professional = {
       ...candidate.professional,
       ...parsedProfile.professional,
     };
 
-    /* ------------------------------------------
-       FILE UPLOADS
-    --------------------------------------------- */
-
-    // Photo upload
+    // PHOTO UPLOAD
     if (req.files?.photo?.[0]) {
       const url = await uploadToAzure(
         req.files.photo[0].buffer,
@@ -357,7 +346,7 @@ exports.updateUserProfile = async (req, res) => {
       candidate.personal.photo = url;
     }
 
-    // Resume upload
+    // RESUME UPLOAD
     if (req.files?.resume?.[0]) {
       const url = await uploadToAzure(
         req.files.resume[0].buffer,
@@ -367,7 +356,6 @@ exports.updateUserProfile = async (req, res) => {
       candidate.professional.resume = url;
     }
 
-    // Save updates
     await candidate.save();
 
     res.json({
