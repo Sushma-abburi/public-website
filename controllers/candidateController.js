@@ -318,17 +318,21 @@ exports.updateUserProfile = async (req, res) => {
       candidate = new Candidate({ userId });
     }
 
+    // Ensure nested objects exist
+    candidate.personal = candidate.personal || {};
+    candidate.professional = candidate.professional || {};
+
     // MERGE PERSONAL
     candidate.personal = {
       ...candidate.personal,
       ...parsedProfile.personal,
     };
 
-    // FIX: ensure top-level email exists (prevents validation error)
+    // Ensure top-level email exists (prevents validation error)
     candidate.email = parsedProfile.personal?.email || candidate.email;
 
     // MERGE EDUCATIONS
-    candidate.educations = parsedProfile.educations || candidate.educations;
+    candidate.educations = parsedProfile.educations || candidate.educations || [];
 
     // MERGE PROFESSIONAL
     candidate.professional = {
@@ -336,7 +340,18 @@ exports.updateUserProfile = async (req, res) => {
       ...parsedProfile.professional,
     };
 
-    // PHOTO UPLOAD
+    // --- Normalization: convert arrays -> strings if schema expects string ---
+    // Achievements: Application may send array; Candidate schema expects string.
+    if (Array.isArray(candidate.professional.achievements)) {
+      // join with comma and space
+      candidate.professional.achievements = candidate.professional.achievements.join(", ");
+    } else if (candidate.professional.achievements === undefined || candidate.professional.achievements === null) {
+      candidate.professional.achievements = candidate.professional.achievements || "";
+    }
+
+   
+
+    // FILE UPLOADS
     if (req.files?.photo?.[0]) {
       const url = await uploadToAzure(
         req.files.photo[0].buffer,
@@ -346,7 +361,6 @@ exports.updateUserProfile = async (req, res) => {
       candidate.personal.photo = url;
     }
 
-    // RESUME UPLOAD
     if (req.files?.resume?.[0]) {
       const url = await uploadToAzure(
         req.files.resume[0].buffer,
@@ -356,6 +370,7 @@ exports.updateUserProfile = async (req, res) => {
       candidate.professional.resume = url;
     }
 
+    // Save updates
     await candidate.save();
 
     res.json({
@@ -364,9 +379,9 @@ exports.updateUserProfile = async (req, res) => {
       data: candidate,
       profilePic: candidate.personal.photo,
     });
-
   } catch (err) {
     console.error("Update Profile Error:", err);
     res.status(500).json({ error: "Server error updating profile" });
   }
 };
+
