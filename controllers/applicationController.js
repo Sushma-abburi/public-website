@@ -89,7 +89,18 @@ if (!personal.email) {
     message: "Email is required to apply for a job",
   });
 }
+// ✅ FETCH USER BUSINESS ID (DTVB-0001)
+const user = await User.findOne(
+  { email: personal.email },
+  { userId: 1 }
+);
 
+if (!user) {
+  return res.status(404).json({
+    success: false,
+    message: "User not registered. Please register before applying.",
+  });
+}
     const educations = tryParseJSON(req.body.educations) || [];
     let professional =
       tryParseJSON(req.body.professional) || req.body.professional || {};
@@ -166,6 +177,7 @@ if (!personal.email) {
       job: jobObj?._id || req.body.job || null,
       jobTitle: req.body.jobTitle || jobObj?.jobTitle || null,
       jobEmbedded,
+      id:user.userId,//added user id
       // Location,
       personal,
       educations,
