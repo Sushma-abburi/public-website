@@ -3,6 +3,13 @@ mongoose.set("bufferCommands", false);
 
 const userSchema = new mongoose.Schema(
   {
+    // ✅ Business ID (DTVB-0001)
+    userId: {
+      type: String,
+      unique: true,
+      index: true,
+    },
+    
     firstName: { type: String, required: true },
     lastName: { type: String, required: true },
     dob: { type: Date, required: true },

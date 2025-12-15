@@ -423,7 +423,7 @@ exports.getYearlyStats = async (req, res) => {
 // ✅ HIRED
 exports.getHiredApplications = async (req, res) => {
   try {
-    const docs = await Application.find({ status: "Hired" })
+    const docs = await Application.find({ status: "hired" })
       .sort({ createdAt: -1 })
       .lean();
 
@@ -453,7 +453,7 @@ exports.deleteApplication = async (req, res) => {
 // ✅ ON HOLD
 exports.getOnHoldApplications = async (req, res) => {
   try {
-    const docs = await Application.find({ status: "Shortlisted" })
+    const docs = await Application.find({ status: "onHold" })
       .sort({ createdAt: -1 })
       .lean();
 

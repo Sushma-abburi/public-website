@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 const sendEmail = require("../utils/sendEmail");
 const sendSMS = require("../utils/sendSMS");
 const uploadToAzure = require("../utils/uploadToAzure");
+const generateUniqueId = require("../helpers/generateId");
 
 exports.register = async (req, res) => {
   try {
@@ -24,7 +25,12 @@ exports.register = async (req, res) => {
     // Hash password
     const hashed = await bcrypt.hash(password, 10);
 
+    // ✅ Generate safe unique ID
+    const userId = await generateUniqueId();
+    
+
     const newUser = new User({
+      userId,
       firstName,
       lastName,
       dob,
@@ -150,28 +156,6 @@ exports.uploadProfilePhoto = async (req, res) => {
   }
 };
 ////VERIFY OTP
-// exports.verifyOtp = async (req, res) => {
-//   try {
-//     const { emailOrMobile, otp } = req.body;
-
-//     const user = await User.findOne({
-//       $or: [{ email: emailOrMobile }, { phone: emailOrMobile }],
-//     });
-
-//     if (!user) return res.status(404).json({ message: "User not found" });
-
-//     if (user.otp !== otp)
-//       return res.status(400).json({ message: "Invalid OTP" });
-
-//     if (user.otpExpires < Date.now())
-//       return res.status(400).json({ message: "OTP expired" });
-
-//     res.json({ message: "OTP verified successfully" });
-
-//   } catch (error) {
-//     res.status(500).json({ message: "Server error" });
-//   }
-// };
 exports.verifyOtp = async (req, res) => {
   try {
     // ✅ CRASH-PROOF BODY READ
