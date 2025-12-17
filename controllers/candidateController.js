@@ -310,6 +310,113 @@ exports.getProfilePrefillFromJob = async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 };
+// exports.getProfilePrefillFromJob = async (req, res) => {
+//   try {
+//     const user = await User.findById(req.user._id).select("email");
+//     if (!user?.email) {
+//       return res.json({ prefillAvailable: false });
+//     }
+
+//     const email = user.email.toLowerCase().trim();
+
+//     // Latest job application
+//     const lastApp = await Application
+//       .findOne({ "personal.email": email })
+//       .sort({ createdAt: -1 });
+
+//     const candidate = await Candidate.findOne({ email });
+
+//     if (!lastApp && !candidate) {
+//       return res.json({ prefillAvailable: false, data: {} });
+//     }
+
+//     const result = {
+//       // ✅ PERSONAL (FLAT from Candidate)
+//       personal: {
+//         firstName:
+//           lastApp?.personal?.firstName ||
+//           candidate?.firstName ||
+//           "",
+
+//         lastName:
+//           lastApp?.personal?.lastName ||
+//           candidate?.lastName ||
+//           "",
+
+//         email,
+
+//         phone:
+//           lastApp?.personal?.phone ||
+//           candidate?.phone ||
+//           "",
+
+//         currentAddress:
+//           lastApp?.personal?.currentAddress || "",
+//       },
+
+//       // ✅ EDUCATIONS
+//       educations:
+//         lastApp?.educations?.length
+//           ? lastApp.educations
+//           : candidate?.educations || [],
+
+//       // ✅ PROFESSIONAL
+//       professional: {
+//         jobType:
+//           lastApp?.professional?.jobType ||
+//           candidate?.employeeType ||
+//           "",
+
+//         skills:
+//           lastApp?.professional?.skills?.length
+//             ? lastApp.professional.skills
+//             : candidate?.skills || [],
+
+//         certifications:
+//           lastApp?.professional?.certifications ||
+//           candidate?.professional?.certifications ||
+//           [],
+
+//         projects:
+//           lastApp?.professional?.projects ||
+//           candidate?.professional?.projects ||
+//           [],
+
+//         experiences:
+//           lastApp?.professional?.experiences ||
+//           candidate?.professional?.experiences ||
+//           [],
+
+//         linkedin:
+//           lastApp?.professional?.linkedin ||
+//           candidate?.professional?.linkedin ||
+//           "",
+
+//         achievements:
+//           lastApp?.professional?.achievements ||
+//           candidate?.professional?.achievements ||
+//           [],
+
+//         salary:
+//           lastApp?.professional?.salary ||
+//           candidate?.professional?.salary ||
+//           "",
+
+//         resume:
+//           lastApp?.professional?.resumeUrl ||
+//           candidate?.resume ||
+//           null,
+//       },
+//     };
+
+//     res.json({ prefillAvailable: true, data: result });
+
+//   } catch (err) {
+//     console.error("Profile Prefill Error:", err);
+//     res.status(500).json({ error: "Server error" });
+//   }
+// };
+
 //update profile user
 exports.updateUserProfile = async (req, res) => {
   try {
@@ -391,25 +498,84 @@ exports.updateUserProfile = async (req, res) => {
 };
 
 ///save user profile
+// exports.saveUserProfile = async (req, res) => {
+//   console.log("SAVE DRAFT USER ID:", req.user._id, typeof req.user._id);
+
+//   try {
+//     // const userId = req.user.id;
+//         const userId = req.user._id; // ✅ FIX
+
+//     const parsedProfile = JSON.parse(req.body.profile || "{}");
+
+//     let draft = await ProfileDraft.findOne({ userId });
+
+//     if (!draft) {
+//       draft = new ProfileDraft({ userId });
+//     }
+
+//     // STORE PROFILE AS-IS
+//     draft.profile = {
+//       personal: parsedProfile.personal || draft.profile?.personal || {},
+//       educations: parsedProfile.educations || draft.profile?.educations || [],
+//       professional: parsedProfile.professional || draft.profile?.professional || {},
+//     };
+
+//     // FILES
+//     if (req.files?.photo?.[0]) {
+//       draft.photo = await uploadToAzure(
+//         req.files.photo[0].buffer,
+//         req.files.photo[0].originalname,
+//         req.files.photo[0].mimetype
+//       );
+//     }
+
+//     if (req.files?.resume?.[0]) {
+//       draft.resume = await uploadToAzure(
+//         req.files.resume[0].buffer,
+//         req.files.resume[0].originalname,
+//         req.files.resume[0].mimetype
+//       );
+//     }
+
+//     draft.lastSavedAt = new Date();
+//     await draft.save();
+
+//     res.json({
+//       success: true,
+//       message: "Profile draft saved",
+//       data: draft,
+//     });
+//   } catch (err) {
+//     console.error("Save Draft Error:", err);
+//     res.status(500).json({ error: "Failed to save draft" });
+//   }
+// };
 exports.saveUserProfile = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user._id;
+    const userEmail = req.user.email.toLowerCase().trim();
     const parsedProfile = JSON.parse(req.body.profile || "{}");
 
-    let draft = await ProfileDraft.findOne({ userId });
+    let draft = await ProfileDraft.findOne({
+      $or: [
+        { userId },
+        { email: userEmail }
+      ]
+    });
 
     if (!draft) {
-      draft = new ProfileDraft({ userId });
+      draft = new ProfileDraft({
+        userId,
+        email: userEmail,
+      });
     }
 
-    // STORE PROFILE AS-IS
     draft.profile = {
-      personal: parsedProfile.personal || draft.profile?.personal || {},
-      educations: parsedProfile.educations || draft.profile?.educations || [],
-      professional: parsedProfile.professional || draft.profile?.professional || {},
+      personal: parsedProfile.personal || {},
+      educations: parsedProfile.educations || [],
+      professional: parsedProfile.professional || {},
     };
 
-    // FILES
     if (req.files?.photo?.[0]) {
       draft.photo = await uploadToAzure(
         req.files.photo[0].buffer,
@@ -426,7 +592,6 @@ exports.saveUserProfile = async (req, res) => {
       );
     }
 
-    draft.lastSavedAt = new Date();
     await draft.save();
 
     res.json({
@@ -434,8 +599,77 @@ exports.saveUserProfile = async (req, res) => {
       message: "Profile draft saved",
       data: draft,
     });
+
   } catch (err) {
-    console.error("Save Draft Error:", err);
-    res.status(500).json({ error: "Failed to save draft" });
+    console.error("SAVE ERROR:", err);
+    res.status(500).json({ message: "Save failed" });
+  }
+};
+
+exports.submitProfile = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const userEmail = req.user.email.toLowerCase().trim();
+
+    let draft = await ProfileDraft.findOne({
+      $or: [
+        { userId },
+        { email: userEmail },
+        { "profile.personal.email": userEmail }
+      ]
+    });
+
+    if (!draft) {
+      draft = new ProfileDraft({
+        userId,
+        email: userEmail,
+        profile: { personal: { email: userEmail } }
+      });
+    }
+
+    // 🔥 FALLBACK FROM JOB APPLICATION
+    if (
+      !draft.profile.educations?.length &&
+      !draft.profile.professional
+    ) {
+      const lastApp = await Application.findOne({
+        "personal.email": userEmail
+      }).sort({ createdAt: -1 });
+
+      if (lastApp) {
+        draft.profile.educations = lastApp.educations || [];
+        draft.profile.professional = lastApp.professional || {};
+      }
+    }
+
+    const { personal, educations, professional } = draft.profile;
+
+    const candidate = await Candidate.findOneAndUpdate(
+      { email: userEmail },
+      {
+        firstName: personal?.firstName,
+        lastName: personal?.lastName,
+        email: userEmail,
+        phone: personal?.phone,
+        educations: educations || [],
+        professional: professional || {},
+        resume: draft.resume,
+        photo: draft.photo,
+      },
+      { upsert: true, new: true }
+    );
+
+    draft.isSubmitted = true;
+    await draft.save();
+
+    res.json({
+      success: true,
+      message: "Profile submitted successfully",
+      data: candidate,
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Submit failed" });
   }
 };

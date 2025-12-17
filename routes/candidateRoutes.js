@@ -18,6 +18,7 @@ const {
   getProfilePrefillFromJob,
   updateUserProfile,
   saveUserProfile,
+  submitProfile
 } = require("../controllers/candidateController");
 
 // CREATE
@@ -66,6 +67,12 @@ router.post(
   ]),
   saveUserProfile
 );
+router.post(
+  "/profile/submit",
+  authMiddleware,
+  submitProfile
+);
+
 
 router.get("/email/:email", getCandidateByEmail);
 
@@ -77,5 +84,6 @@ router.delete("/:id", deleteCandidate);
 
 // ✅ PARAM ROUTE ALWAYS LAST
 router.get("/:id", getCandidateById);
+
 
 module.exports = router;
