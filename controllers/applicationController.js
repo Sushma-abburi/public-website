@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 const Application = require("../models/Application");
-
+const User = require("../models/User");
 // ✅ AZURE CONFIG
 let blobServiceClient = null;
 let containerName = null;
