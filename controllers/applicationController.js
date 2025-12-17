@@ -177,9 +177,8 @@ const jobEmbedded = {
   jobTitle: resolvedJobTitle,
   jobType: resolvedJobType,
   company: jobObj?.company || null,
-  location: jobObj?.location || null,
+  location: resolvedLocation, // ✅ FIX
 };
-
 
 
    
@@ -254,20 +253,35 @@ exports.getApplicationById = async (req, res) => {
 // ✅ HR VIEW (UNCHANGED)
 exports.getApplicationsForHR = async (req, res) => {
   try {
-    const docs = await Application.find({})
-      .sort({ _id: -1 })
-      .limit(50)
+    const docs = await Application.find({
+      $or: [
+        { status: { $exists: false } },   // no status
+        { status: null },                 // null
+        { status: "" },                   // empty
+        { status: { $nin: ["Rejected"] } } // any valid except rejected
+      ]
+    })
+      .sort({ createdAt: -1 })
       .lean();
 
-    res.status(200).json(docs);
+    const applications = docs.map(app => ({
+      _id: app._id,
+      jobTitle: app.jobTitle || app.jobEmbedded?.jobTitle,
+      jobType: app.jobEmbedded?.jobType,
+      location: app.jobEmbedded?.location || null,
+      status: app.status || "Applied",   // ✅ default display
+      reason: app.reason || null,
+      resume: app.professional?.resumeUrl || null,
+      personal: app.personal,
+      appliedAt: app.createdAt,
+    }));
+
+    res.json({ success: true, applications });
   } catch (err) {
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch HR applications",
-      error: err.message,
-    });
+    res.status(500).json({ error: err.message });
   }
 };
+
 
 // ✅ PUBLIC VIEW
 // exports.getPublicApplications = async (req, res) => {
@@ -341,7 +355,9 @@ exports.getAppliedJobIdsByEmail = async (req, res) => {
 // ✅ SUMMARY
 exports.getSummaryStats = async (req, res) => {
   try {
-    const totalApplied = await Application.countDocuments();
+    const totalApplied = await Application.countDocuments({
+      status: { $ne: "Rejected" },
+    });
 
     const onHold = await Application.countDocuments({
       status: { $in: ["On Hold", "Shortlisted", "Selected"] },
@@ -500,14 +516,22 @@ exports.getHiredApplications = async (req, res) => {
       .sort({ createdAt: -1 })
       .lean();
 
-    res.status(200).json({
-      success: true,
-      applications: docs
-    });
+    const applications = docs.map(app => ({
+      _id: app._id,
+      jobTitle: app.jobTitle || app.jobEmbedded?.jobTitle,
+      status: app.status,
+      reason: app.reason || null,   // ✅ FIX
+      personal: app.personal,
+      professional: app.professional,
+      createdAt: app.createdAt,
+    }));
+
+    res.status(200).json({ success: true, applications });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
+
 
 // ✅ DELETE (SAFE – FIXED CRASH)
 exports.deleteApplication = async (req, res) => {
@@ -526,16 +550,24 @@ exports.deleteApplication = async (req, res) => {
 // ✅ ON HOLD
 exports.getOnHoldApplications = async (req, res) => {
   try {
-    const docs = await Application.find({ status: "Shortlisted" })
+    const docs = await Application.find({
+      status: { $in: ["On Hold", "Shortlisted"] }
+    })
       .sort({ createdAt: -1 })
       .lean();
 
-    res.status(200).json({
-      success: true,
-      applications: docs
-    });
+    const applications = docs.map(app => ({
+      _id: app._id,
+      jobTitle: app.jobTitle || app.jobEmbedded?.jobTitle,
+      status: app.status,
+      reason: app.reason || null,   // ✅ FIX
+      personal: app.personal,
+      professional: app.professional,
+      createdAt: app.createdAt,
+    }));
 
+    res.status(200).json({ success: true, applications });
   } catch (err) {
     res.status(500).json({ error: err.message });
-  }  
+  }
 };
