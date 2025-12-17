@@ -160,28 +160,49 @@ if (!user) {
       professional.certifications
     );
 
-    const jobObj = tryParseJSON(req.body.job);
-const jobEmbedded = jobObj
-  ? {
-      jobTitle: jobObj.jobTitle || req.body.jobTitle || null,
-      jobType: jobObj.jobType || req.body.jobType || "Full Time",
-      company: jobObj.company || null,
-      location: jobObj.location || null,
-    }
-  : null;
+const jobObj = tryParseJSON(req.body.job);
+
+// Always resolve job fields safely
+const resolvedJobTitle =
+  jobObj?.jobTitle ||
+  req.body.jobTitle ||
+  null;
+
+const resolvedJobType =
+  jobObj?.jobType ||
+  req.body.jobType ||
+  "Full Time";
+
+const jobEmbedded = {
+  jobTitle: resolvedJobTitle,
+  jobType: resolvedJobType,
+  company: jobObj?.company || null,
+  location: jobObj?.location || null,
+};
+
 
 
    
-    const appDoc = new Application({
-      job: jobObj?._id || req.body.job || null,
-      jobTitle: req.body.jobTitle || jobObj?.jobTitle || null,
-      jobEmbedded,
-      id:user.userId,//added user id
-      // Location,
-      personal,
-      educations,
-      professional,
-    });
+    // const appDoc = new Application({
+    //   job: jobObj?._id || req.body.job || null,
+    //   jobTitle: req.body.jobTitle || jobObj?.jobTitle || null,
+    //   jobEmbedded,
+    //   id:user.userId,//added user id
+    //   // Location,
+    //   personal,
+    //   educations,
+    //   professional,
+    // });
+   const appDoc = new Application({
+  job: req.body.job || null,   // ObjectId or string
+  jobTitle: resolvedJobTitle,  // TOP-LEVEL (IMPORTANT)
+  jobEmbedded,                 // Nested object
+
+  personal,
+  educations,
+  professional,
+  id: user.userId,
+});
 
     await appDoc.save();
 
@@ -277,15 +298,32 @@ exports.getApplicationsByEmail = async (req, res) => {
   try {
     const { email } = req.query;
 
-    const applications = await Application.find({
+    const docs = await Application.find({
       "personal.email": email
-    }).sort({ createdAt: -1 });
+    })
+      .sort({ createdAt: -1 })
+      .lean();
 
-    res.json({ applications });
+    const applications = docs.map(app => ({
+      _id: app._id,
+      jobId: app.job,
+
+      // ✅ FIXED FIELDS
+      jobTitle: app.jobTitle || app.jobEmbedded?.jobTitle || "N/A",
+      jobType: app.jobEmbedded?.jobType || "N/A",
+
+      status: app.status,
+      appliedAt: app.createdAt
+    }));
+
+    res.json({ success: true, applications });
   } catch (err) {
+    console.error("getApplicationsByEmail ERROR:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
+
+
 
 // ✅ JOB IDS
 exports.getAppliedJobIdsByEmail = async (req, res) => {
