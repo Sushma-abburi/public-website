@@ -254,31 +254,31 @@ exports.getApplicationById = async (req, res) => {
 exports.getApplicationsForHR = async (req, res) => {
   try {
     const docs = await Application.find({
-      status: { $ne: "Rejected" } // ✅ exclude rejected
+      $or: [
+        { status: { $exists: false } },   // no status
+        { status: null },                 // null
+        { status: "" },                   // empty
+        { status: { $nin: ["Rejected"] } } // any valid except rejected
+      ]
     })
-      .sort({ _id: -1 })
-      .limit(50)
+      .sort({ createdAt: -1 })
       .lean();
 
     const applications = docs.map(app => ({
       _id: app._id,
       jobTitle: app.jobTitle || app.jobEmbedded?.jobTitle,
       jobType: app.jobEmbedded?.jobType,
-      location: app.jobEmbedded?.location || null, // ✅ FIX
-      status: app.status,
-      reason: app.reason || null,                  // ✅ FIX
-      resume: app.professional?.resumeUrl || null, // ✅ FIX
+      location: app.jobEmbedded?.location || null,
+      status: app.status || "Applied",   // ✅ default display
+      reason: app.reason || null,
+      resume: app.professional?.resumeUrl || null,
       personal: app.personal,
       appliedAt: app.createdAt,
     }));
 
-    res.status(200).json({ success: true, applications });
+    res.json({ success: true, applications });
   } catch (err) {
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch HR applications",
-      error: err.message,
-    });
+    res.status(500).json({ error: err.message });
   }
 };
 
