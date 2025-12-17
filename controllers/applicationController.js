@@ -284,13 +284,26 @@ exports.getApplicationsForHR = async (req, res) => {
 
     const applications = docs.map(app => ({
       _id: app._id,
+
+      // Job
       jobTitle: app.jobTitle || app.jobEmbedded?.jobTitle,
       jobType: app.jobEmbedded?.jobType,
       location: app.jobEmbedded?.location || null,
+
+      // Status
       status: app.status || "Applied",
       reason: app.reason || null,
-      resume: app.professional?.resumeUrl || null,
+
+      // Candidate
       personal: app.personal,
+
+      // ✅ MISSING FIELDS (FIX)
+      educations: app.educations || [],
+      professional: app.professional || {},
+
+      // Files
+      resume: app.professional?.resumeUrl || null,
+
       appliedAt: app.createdAt,
     }));
 
@@ -299,7 +312,6 @@ exports.getApplicationsForHR = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
-
 
 // ✅ PUBLIC VIEW
 // exports.getPublicApplications = async (req, res) => {
