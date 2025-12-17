@@ -342,19 +342,25 @@ exports.getAppliedJobIdsByEmail = async (req, res) => {
 exports.getSummaryStats = async (req, res) => {
   try {
     const totalApplied = await Application.countDocuments();
+
     const onHold = await Application.countDocuments({
-      "professional.status": { $in: ["Viewed", "Shortlisted"] },
+      status: { $in: ["On Hold", "Shortlisted", "Selected"] },
     });
 
     const hired = await Application.countDocuments({
-      "professional.status": "Hired",
+      status: "Hired",
     });
 
-    res.status(200).json({ totalApplied, onHold, hired });
+    res.status(200).json({
+      totalApplied,
+      onHold,
+      hired,
+    });
   } catch (error) {
     res.status(500).json({ message: "Failed to fetch summary stats" });
   }
 };
+
 
 // ✅ MONTHLY STATS
 exports.getMonthlyStats = async (req, res) => {

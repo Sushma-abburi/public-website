@@ -66,6 +66,7 @@ router.post(
   ]),
   saveUserProfile
 );
+
 router.get("/email/:email", getCandidateByEmail);
 
 // UPDATE

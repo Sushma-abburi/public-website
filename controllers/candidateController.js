@@ -3,6 +3,8 @@ const User = require("../models/User");   // ADD THIS.
 const Application = require("../models/Application"); //ADD THIS..
 const uploadToAzure = require("../utils/uploadToAzure");
 const jwt = require("jsonwebtoken");
+const ProfileDraft = require("../models/ProfileDraft");
+
 
 exports.createCandidate = async (req, res) => {
   try {
@@ -394,44 +396,22 @@ exports.saveUserProfile = async (req, res) => {
     const userId = req.user.id;
     const parsedProfile = JSON.parse(req.body.profile || "{}");
 
-    let candidate = await Candidate.findOne({ userId });
+    let draft = await ProfileDraft.findOne({ userId });
 
-    if (!candidate) {
-      candidate = new Candidate({
-        userId,
-        isDraft: true,
-        email: parsedProfile.personal?.email || undefined, // optional
-      });
+    if (!draft) {
+      draft = new ProfileDraft({ userId });
     }
 
-    // MERGE PERSONAL
-    if (parsedProfile.personal) {
-      candidate.personal = {
-        ...(candidate.personal || {}),
-        ...parsedProfile.personal,
-      };
-
-      if (parsedProfile.personal.email) {
-        candidate.email = parsedProfile.personal.email;
-      }
-    }
-
-    // MERGE EDUCATION
-    if (Array.isArray(parsedProfile.educations)) {
-      candidate.educations = parsedProfile.educations;
-    }
-
-    // MERGE PROFESSIONAL
-    if (parsedProfile.professional) {
-      candidate.professional = {
-        ...(candidate.professional || {}),
-        ...parsedProfile.professional,
-      };
-    }
+    // STORE PROFILE AS-IS
+    draft.profile = {
+      personal: parsedProfile.personal || draft.profile?.personal || {},
+      educations: parsedProfile.educations || draft.profile?.educations || [],
+      professional: parsedProfile.professional || draft.profile?.professional || {},
+    };
 
     // FILES
     if (req.files?.photo?.[0]) {
-      candidate.personal.photo = await uploadToAzure(
+      draft.photo = await uploadToAzure(
         req.files.photo[0].buffer,
         req.files.photo[0].originalname,
         req.files.photo[0].mimetype
@@ -439,28 +419,23 @@ exports.saveUserProfile = async (req, res) => {
     }
 
     if (req.files?.resume?.[0]) {
-      candidate.professional.resume = await uploadToAzure(
+      draft.resume = await uploadToAzure(
         req.files.resume[0].buffer,
         req.files.resume[0].originalname,
         req.files.resume[0].mimetype
       );
     }
 
-    candidate.isDraft = true;
-
-    candidate.markModified("personal");
-    candidate.markModified("educations");
-    candidate.markModified("professional");
-
-    await candidate.save({ validateBeforeSave: false }); // 🔥 IMPORTANT
+    draft.lastSavedAt = new Date();
+    await draft.save();
 
     res.json({
       success: true,
-      message: "Profile saved successfully",
-      data: candidate,
+      message: "Profile draft saved",
+      data: draft,
     });
   } catch (err) {
-    console.error("Save Profile Error:", err);
-    res.status(500).json({ error: "Failed to save profile" });
+    console.error("Save Draft Error:", err);
+    res.status(500).json({ error: "Failed to save draft" });
   }
 };
