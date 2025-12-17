@@ -1,5 +1,5 @@
 const Candidate = require("../models/Candidate");
-const User = require("../models/User");   // ✅ ADD THIS.
+const User = require("../models/User");   // ADD THIS.
 const Application = require("../models/Application"); //ADD THIS..
 const uploadToAzure = require("../utils/uploadToAzure");
 const jwt = require("jsonwebtoken");
@@ -33,13 +33,13 @@ exports.createCandidate = async (req, res) => {
       );
       data.resume = url;
     }
+    // Normalize gradeType
+if (data.gradeType) {
+  data.gradeType = data.gradeType.toUpperCase();
+}
 
     // ✅ SAVE CANDIDATE
     const candidate = await Candidate.create(data);
-
-    // // ✅ ✅ ✅ MARK PROFILE AS COMPLETED
-    // user.isProfileCompleted = true;
-    // await user.save();
 
     // ✅ MARK PROFILE AS COMPLETED + UPDATE NAME
     user.firstName = data.firstName;
@@ -112,6 +112,9 @@ exports.updateCandidate = async (req, res) => {
       );
       data.resume = url;
     }
+    if (data.gradeType) {
+  data.gradeType = data.gradeType.toUpperCase();
+}
 
     const updated = await Candidate.findByIdAndUpdate(req.params.id, data, {
       new: true,

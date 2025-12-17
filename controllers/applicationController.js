@@ -173,6 +173,7 @@ if (!user) {
         }
       : null;
 
+   
     const appDoc = new Application({
       job: jobObj?._id || req.body.job || null,
       jobTitle: req.body.jobTitle || jobObj?.jobTitle || null,
@@ -250,9 +251,27 @@ exports.getApplicationsForHR = async (req, res) => {
 };
 
 // ✅ PUBLIC VIEW
+// exports.getPublicApplications = async (req, res) => {
+//   const docs = await Application.find({ publicVisible: true });
+//   res.json({ data: docs });
+// };
 exports.getPublicApplications = async (req, res) => {
-  const docs = await Application.find({ publicVisible: true });
-  res.json({ data: docs });
+  try {
+    const docs = await Application.find({ publicVisible: true }).lean();
+
+    const formatted = docs.map(app => ({
+      _id: app._id,
+      jobId: app.job,
+      jobTitle: app.jobTitle || app.jobEmbedded?.jobTitle || null,
+      jobType: app.jobEmbedded?.jobType || null,
+      personal: app.personal,
+      createdAt: app.createdAt,
+    }));
+
+    res.json({ success: true, data: formatted });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
 };
 
 // ✅ USER BY EMAIL
