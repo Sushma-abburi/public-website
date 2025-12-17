@@ -3,20 +3,7 @@ const router = express.Router();
 const upload = require("../middleware/uploadResume");
 const ctrl = require("../controllers/applicationController");
 
-// // ✅ FILE UPLOAD CONFIG
-// const uploadFields = upload.fields([
-//   { name: "photo", maxCount: 1 },
-//   { name: "resume", maxCount: 1 },
-//   { name: "certifications", maxCount: 20 },
-// ]);
-// const uploadFields = upload.fields([
-//   { name: "photo", maxCount: 1 },
-//   { name: "resume", maxCount: 1 },
 
-//   // ✅ accept both spellings to be safe
-//   { name: "certifications", maxCount: 20 },
-//   { name: "certificates", maxCount: 20 },
-// ]);
 router.post("/", upload.any(), ctrl.createApplication);
 
 // ===============================

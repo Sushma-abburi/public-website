@@ -161,17 +161,15 @@ if (!user) {
     );
 
     const jobObj = tryParseJSON(req.body.job);
+const jobEmbedded = jobObj
+  ? {
+      jobTitle: jobObj.jobTitle || req.body.jobTitle || null,
+      jobType: jobObj.jobType || req.body.jobType || "Full Time",
+      company: jobObj.company || null,
+      location: jobObj.location || null,
+    }
+  : null;
 
-    const jobEmbedded = jobObj
-      ? {
-          ...jobObj,
-          jobType:
-            req.body.jobType ||
-            jobObj.jobType ||
-            jobObj.type ||
-            null,
-        }
-      : null;
 
    
     const appDoc = new Application({
