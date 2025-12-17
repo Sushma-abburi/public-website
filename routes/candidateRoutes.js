@@ -17,6 +17,7 @@ const {
   getBasicDetailsForApplication,
   getProfilePrefillFromJob,
   updateUserProfile,
+  saveUserProfile,
 } = require("../controllers/candidateController");
 
 // CREATE
@@ -52,7 +53,19 @@ router.get(
   prefillApplication
 );
 
-
+// ===============================
+// ✅ SAVE PROFILE (DRAFT)
+// ===============================
+// Used when user clicks "Save" button
+router.post(
+  "/profile/save",
+  authMiddleware,
+  upload.fields([
+    { name: "photo", maxCount: 1 },
+    { name: "resume", maxCount: 1 },
+  ]),
+  saveUserProfile
+);
 router.get("/email/:email", getCandidateByEmail);
 
 // UPDATE

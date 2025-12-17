@@ -388,3 +388,79 @@ exports.updateUserProfile = async (req, res) => {
   }
 };
 
+///save user profile
+exports.saveUserProfile = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const parsedProfile = JSON.parse(req.body.profile || "{}");
+
+    let candidate = await Candidate.findOne({ userId });
+
+    if (!candidate) {
+      candidate = new Candidate({
+        userId,
+        isDraft: true,
+        email: parsedProfile.personal?.email || undefined, // optional
+      });
+    }
+
+    // MERGE PERSONAL
+    if (parsedProfile.personal) {
+      candidate.personal = {
+        ...(candidate.personal || {}),
+        ...parsedProfile.personal,
+      };
+
+      if (parsedProfile.personal.email) {
+        candidate.email = parsedProfile.personal.email;
+      }
+    }
+
+    // MERGE EDUCATION
+    if (Array.isArray(parsedProfile.educations)) {
+      candidate.educations = parsedProfile.educations;
+    }
+
+    // MERGE PROFESSIONAL
+    if (parsedProfile.professional) {
+      candidate.professional = {
+        ...(candidate.professional || {}),
+        ...parsedProfile.professional,
+      };
+    }
+
+    // FILES
+    if (req.files?.photo?.[0]) {
+      candidate.personal.photo = await uploadToAzure(
+        req.files.photo[0].buffer,
+        req.files.photo[0].originalname,
+        req.files.photo[0].mimetype
+      );
+    }
+
+    if (req.files?.resume?.[0]) {
+      candidate.professional.resume = await uploadToAzure(
+        req.files.resume[0].buffer,
+        req.files.resume[0].originalname,
+        req.files.resume[0].mimetype
+      );
+    }
+
+    candidate.isDraft = true;
+
+    candidate.markModified("personal");
+    candidate.markModified("educations");
+    candidate.markModified("professional");
+
+    await candidate.save({ validateBeforeSave: false }); // 🔥 IMPORTANT
+
+    res.json({
+      success: true,
+      message: "Profile saved successfully",
+      data: candidate,
+    });
+  } catch (err) {
+    console.error("Save Profile Error:", err);
+    res.status(500).json({ error: "Failed to save profile" });
+  }
+};
