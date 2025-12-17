@@ -6,7 +6,7 @@ const profileDraftSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
-      unique: true, // ONE draft per user
+      unique: true,
     },
 
     profile: {
@@ -26,4 +26,9 @@ const profileDraftSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model("ProfileDraft", profileDraftSchema);
+// 🔥 FORCE COLLECTION NAME
+module.exports = mongoose.model(
+  "ProfileDraft",
+  profileDraftSchema,
+  "profiledrafts"
+);

@@ -282,7 +282,7 @@ exports.getApplicationsForHR = async (req, res) => {
       .sort({ createdAt: -1 })
       .lean();
 
-    const Applications = docs.map(app => ({
+    const applications = docs.map(app => ({
       _id: app._id,
       jobTitle: app.jobTitle || app.jobEmbedded?.jobTitle,
       jobType: app.jobEmbedded?.jobType,
