@@ -238,6 +238,7 @@ const appDoc = new Application({
 };
 
 // ✅ PATCH (SAFE – FIXED CRASH)
+// ✅ PATCH (SAFE – WITH REJECT TRACKING)
 exports.patchApplication = async (req, res) => {
   try {
     const { id } = req.params;
@@ -247,9 +248,22 @@ exports.patchApplication = async (req, res) => {
       return res.status(400).json({ success: false, message: "Invalid ID" });
     }
 
+    const update = {
+      status,
+      reason,
+      updatedAt: new Date()
+    };
+
+    // ✅ SET / RESET rejectedAt
+    if (status === "Rejected") {
+      update.rejectedAt = new Date();
+    } else {
+      update.rejectedAt = null;
+    }
+
     const updated = await Application.findByIdAndUpdate(
       id,
-      { status, reason },
+      update,
       { new: true }
     );
 
@@ -258,6 +272,7 @@ exports.patchApplication = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 
 // ✅ GET BY ID (SAFE – FIXED CastError)
 exports.getApplicationById = async (req, res) => {
@@ -597,6 +612,37 @@ exports.getOnHoldApplications = async (req, res) => {
     }));
 
     res.status(200).json({ success: true, applications });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+////rejected details
+
+// ✅ REJECTED APPLICATIONS
+exports.getRejectedApplications = async (req, res) => {
+  try {
+    const docs = await Application.find({
+      status: "Rejected"
+    })
+      .sort({ rejectedAt: -1 })
+      .lean();
+
+    const applications = docs.map(app => ({
+      _id: app._id,
+      jobTitle: app.jobTitle || app.jobEmbedded?.jobTitle,
+      status: app.status,
+      reason: app.reason || null,
+      rejectedAt: app.rejectedAt,
+      personal: app.personal,
+      professional: app.professional,
+      createdAt: app.createdAt,
+    }));
+
+    res.status(200).json({
+      success: true,
+      count: applications.length,
+      applications
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

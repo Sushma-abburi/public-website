@@ -75,6 +75,14 @@ const ApplicationSchema = new Schema({
   professional: { type: ProfessionalEntry },
  
   status: { type: String, enum: ["Applied","Viewed","Shortlisted","Rejected","Hired"], default: "Applied" },
+
+  // ✅ ADD THIS
+  rejectedAt: {
+    type: Date,
+    default: null,
+    index: true
+  },
+  
   publicVisible: { type: Boolean, default: false },
  
   createdAt: { type: Date, default: Date.now },

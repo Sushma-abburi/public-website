@@ -41,6 +41,9 @@ router.get("/public", ctrl.getPublicApplications);
 // ===============================
 router.get("/hold", ctrl.getOnHoldApplications);
 
+router.get("/rejected", ctrl.getRejectedApplications);
+
+
 // ===============================
 // ✅ SINGLE APPLICATION (MUST BE LAST)
 // ===============================
