@@ -130,12 +130,12 @@ if (!user) {
     }
 
     // ✅ RESUME IS MANDATORY
-if (!req.files?.resume?.[0]) {
-  return res.status(400).json({
-    success: false,
-    message: "Resume is required to apply for this job",
-  });
-}
+// if (!req.files?.resume?.[0]) {
+//   return res.status(400).json({
+//     success: false,
+//     message: "Resume is required to apply for this job",
+//   });
+// }
 
     ////newly added 
      let resolvedJobTitle = null;
