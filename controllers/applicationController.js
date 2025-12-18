@@ -162,50 +162,19 @@ if (!user) {
 
 const jobObj = tryParseJSON(req.body.job);
 
-// Always resolve job fields safely
-// const resolvedJobTitle =
-//   jobObj?.jobTitle ||
-//   req.body.jobTitle ||
-//   null;
-
-// const resolvedJobType =
-//   jobObj?.jobType ||
-//   req.body.jobType ||
-//   "Full Time";
-
-// const jobEmbedded = {
-//   jobTitle: resolvedJobTitle,
-//   jobType: resolvedJobType,
-//   company: jobObj?.company || null,
-//   location: resolvedLocation, // ✅ FIX
-// };
-
-
-   
-//     // const appDoc = new Application({
-//     //   job: jobObj?._id || req.body.job || null,
-//     //   jobTitle: req.body.jobTitle || jobObj?.jobTitle || null,
-//     //   jobEmbedded,
-//     //   id:user.userId,//added user id
-//     //   // Location,
-//     //   personal,
-//     //   educations,
-//     //   professional,
-//     // });
-//    const appDoc = new Application({
-//   job: req.body.job || null,   // ObjectId or string
-//   jobTitle: resolvedJobTitle,  // TOP-LEVEL (IMPORTANT)
-//   jobEmbedded,                 // Nested object
-
-//   personal,
-//   educations,
-//   professional,
-//   id: user.userId,
-// });
 const resolvedLocation =
   jobObj?.location ||
   req.body.location ||
   req.body.jobLocation ||
+  null;
+const resolvedJobTitle =
+  jobObj?.jobTitle ||
+  req.body.jobTitle ||
+  null;
+
+const resolvedJobType =
+  jobObj?.jobType ||
+  req.body.jobType ||
   null;
 
 const jobEmbedded = {
@@ -219,12 +188,14 @@ const appDoc = new Application({
   job: req.body.job || null,
   jobTitle: resolvedJobTitle,
   jobEmbedded,
+  Location: resolvedLocation, //  ADD THIS
   personal,
   educations,
   professional,
   id: user.userId,
-  status: "Applied", // ✅ IMPORTANT
+  status: "Applied",
 });
+
 
     await appDoc.save();
 
@@ -250,10 +221,12 @@ exports.patchApplication = async (req, res) => {
 
     const update = {
       status,
-      reason,
       updatedAt: new Date()
     };
-
+    // ✅ only update reason if provided
+if (reason !== undefined) {
+  update.reason = reason;
+}
     // ✅ SET / RESET rejectedAt
     if (status === "Rejected") {
       update.rejectedAt = new Date();
@@ -303,8 +276,10 @@ exports.getApplicationsForHR = async (req, res) => {
       // Job
       jobTitle: app.jobTitle || app.jobEmbedded?.jobTitle,
       jobType: app.jobEmbedded?.jobType,
-      location: app.jobEmbedded?.location || null,
-
+      location:
+  app.jobEmbedded?.location ||
+  app.Location ||            // ✅ fallback for old data
+  null,
       // Status
       status: app.status || "Applied",
       reason: app.reason || null,
@@ -317,7 +292,10 @@ exports.getApplicationsForHR = async (req, res) => {
       professional: app.professional || {},
 
       // Files
-      resume: app.professional?.resumeUrl || null,
+      resume:
+  app.professional?.resumeUrl ||
+  app.professional?.resume ||
+  null,
 
       appliedAt: app.createdAt,
     }));

@@ -77,12 +77,19 @@ const ApplicationSchema = new Schema({
   status: { type: String, enum: ["Applied","Viewed","Shortlisted","Rejected","Hired"], default: "Applied" },
 
   // ✅ ADD THIS
-  rejectedAt: {
-    type: Date,
-    default: null,
-    index: true
-  },
-  
+  reason: {
+  type: String,
+  default: null,
+  trim: true
+},
+
+rejectedAt: {
+  type: Date,
+  default: null,
+  index: true
+},
+
+
   publicVisible: { type: Boolean, default: false },
  
   createdAt: { type: Date, default: Date.now },
