@@ -6,6 +6,12 @@ const ctrl = require("../controllers/applicationController");
 
 router.post("/", upload.any(), ctrl.createApplication);
 
+upload.fields([
+  { name: "photo", maxCount: 1 },
+  { name: "resume", maxCount: 1 },
+  { name: "certifications", maxCount: 20 },
+])
+
 // ===============================
 // ✅ CREATE / UPDATE / DELETE
 // ===============================

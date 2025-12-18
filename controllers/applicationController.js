@@ -1,6 +1,8 @@
 const mongoose = require("mongoose");
 const Application = require("../models/Application");
 const User = require("../models/User");
+const Job = require("../models/Job");
+
 // ✅ AZURE CONFIG
 let blobServiceClient = null;
 let containerName = null;
@@ -76,8 +78,12 @@ personal.email =
   null;
 
 // ✅ OPTIONAL BUT RECOMMENDED
-personal.name =
-  personal.name || req.body.name || req.body.fullName || null;
+// personal.name =
+//   personal.name || req.body.name || req.body.fullName || null;
+if (personal.email) {
+  personal.email = personal.email.trim().toLowerCase();
+}
+
 
 personal.contact =
   personal.contact || req.body.phone || req.body.mobile || null;
@@ -123,6 +129,29 @@ if (!user) {
       }
     }
 
+    // ✅ RESUME IS MANDATORY
+if (!req.files?.resume?.[0]) {
+  return res.status(400).json({
+    success: false,
+    message: "Resume is required to apply for this job",
+  });
+}
+
+    ////newly added 
+     let resolvedJobTitle = null;
+    let resolvedJobType = null;
+    let resolvedLocation = null;
+
+    if (req.body.job && mongoose.Types.ObjectId.isValid(req.body.job)) {
+      const job = await Job.findById(req.body.job).lean();
+
+      if (job) {
+        resolvedJobTitle = job.jobTitle || null;
+        resolvedJobType = job.jobType || null;
+        resolvedLocation = job.location || null;
+      }
+    }
+
     if (req.files) {
       if (req.files.photo?.[0]) {
         const f = req.files.photo[0];
@@ -160,42 +189,28 @@ if (!user) {
       professional.certifications
     );
 
-const jobObj = tryParseJSON(req.body.job);
+// const jobObj = tryParseJSON(req.body.job);
 
-const resolvedLocation =
-  jobObj?.location ||
-  req.body.location ||
-  req.body.jobLocation ||
-  null;
-const resolvedJobTitle =
-  jobObj?.jobTitle ||
-  req.body.jobTitle ||
-  null;
-
-const resolvedJobType =
-  jobObj?.jobType ||
-  req.body.jobType ||
-  null;
-
-const jobEmbedded = {
-  jobTitle: resolvedJobTitle,
-  jobType: resolvedJobType,
-  company: jobObj?.company || null,
-  location: resolvedLocation,
-};
+// const jobEmbedded = {
+//   jobTitle: resolvedJobTitle,
+//   jobType: resolvedJobType,
+//   location: resolvedLocation,
+// };
+const jobEmbedded = resolvedJobTitle
+  ? { jobTitle: resolvedJobTitle, jobType: resolvedJobType, location: resolvedLocation }
+  : null;
 
 const appDoc = new Application({
-  job: req.body.job || null,
+  job: req.body.job,
   jobTitle: resolvedJobTitle,
   jobEmbedded,
-  Location: resolvedLocation, //  ADD THIS
+  Location: resolvedLocation, // ✅ ROOT LEVEL
+  userId: user.userId,
   personal,
   educations,
   professional,
-  id: user.userId,
   status: "Applied",
 });
-
 
     await appDoc.save();
 
@@ -270,35 +285,38 @@ exports.getApplicationsForHR = async (req, res) => {
       .sort({ createdAt: -1 })
       .lean();
 
-    const applications = docs.map(app => ({
-      _id: app._id,
+  const applications = docs.map(app => ({
+  _id: app._id,
 
-      // Job
-      jobTitle: app.jobTitle || app.jobEmbedded?.jobTitle,
-      jobType: app.jobEmbedded?.jobType,
-      location:
-  app.jobEmbedded?.location ||
-  app.Location ||            // ✅ fallback for old data
-  null,
-      // Status
-      status: app.status || "Applied",
-      reason: app.reason || null,
+  userId:
+    app.userId ||
+    app.userid ||
+    app.id ||
+    null,
 
-      // Candidate
-      personal: app.personal,
+  jobTitle: app.jobTitle || app.jobEmbedded?.jobTitle,
+  jobType: app.jobEmbedded?.jobType,
+  location: app.jobEmbedded?.location || null,
 
-      // ✅ MISSING FIELDS (FIX)
-      educations: app.educations || [],
-      professional: app.professional || {},
+  status: app.status,
+  reason: app.reason || null,
 
-      // Files
-      resume:
-  app.professional?.resumeUrl ||
-  app.professional?.resume ||
-  null,
+  personal: app.personal,
+  educations: app.educations || [],
+  professional: app.professional || {},
 
-      appliedAt: app.createdAt,
-    }));
+  // ✅ FINAL RESUME FIX
+  resume:
+    app.professional?.resumeUrl ||
+    app.resume ||
+    app.professional?.resume ||
+    null,
+
+  appliedAt: app.createdAt,
+}));
+
+
+
 
     res.json({ success: true, applications });
   } catch (err) {

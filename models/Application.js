@@ -61,7 +61,13 @@ const ProfessionalEntry = new Schema({
 const ApplicationSchema = new Schema({
   // store job as plain string (you asked for string type)
   job: { type: String, required: false },
- 
+
+ userId: {
+  type: String,
+  required: false,
+  index: true,
+},
+
   // optional user-visible title (can duplicate job)
   jobTitle: { type: String, trim: true, index: true },
  
