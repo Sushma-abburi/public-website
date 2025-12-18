@@ -4,14 +4,22 @@ const upload = require("../middleware/uploadResume");
 const ctrl = require("../controllers/applicationController");
 
 
-router.post("/", upload.any(), ctrl.createApplication);
+// router.post("/", upload.any(), ctrl.createApplication);
 
-upload.fields([
-  { name: "photo", maxCount: 1 },
-  { name: "resume", maxCount: 1 },
-  { name: "certifications", maxCount: 20 },
-])
-
+// upload.fields([
+//   { name: "photo", maxCount: 1 },
+//   { name: "resume", maxCount: 1 },
+//   { name: "certifications", maxCount: 20 },
+// ])
+router.post(
+  "/",
+  upload.fields([
+    { name: "photo", maxCount: 1 },
+    { name: "resume", maxCount: 1 },   //  MUST EXIST
+    { name: "certifications", maxCount: 20 }
+  ]),
+  ctrl.createApplication
+);
 // ===============================
 // ✅ CREATE / UPDATE / DELETE
 // ===============================
