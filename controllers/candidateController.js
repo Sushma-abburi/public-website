@@ -421,7 +421,6 @@ exports.getProfilePrefillFromJob = async (req, res) => {
 exports.updateUserProfile = async (req, res) => {
   try {
     const userId = req.user.id;
-
     const parsedProfile = JSON.parse(req.body.profile || "{}");
 
     let candidate = await Candidate.findOne({ userId });
@@ -430,40 +429,39 @@ exports.updateUserProfile = async (req, res) => {
       candidate = new Candidate({ userId });
     }
 
-    // Ensure nested objects exist
-    candidate.personal = candidate.personal || {};
-    candidate.professional = candidate.professional || {};
+    /* ---------------- PERSONAL ---------------- */
+    if (parsedProfile.personal) {
+      candidate.personal = {
+        ...(candidate.personal || {}),
+        ...parsedProfile.personal
+      };
 
-    // MERGE PERSONAL
-    candidate.personal = {
-      ...candidate.personal,
-      ...parsedProfile.personal,
-    };
-
-    // Ensure top-level email exists (prevents validation error)
-    candidate.email = parsedProfile.personal?.email || candidate.email;
-
-    // MERGE EDUCATIONS
-    candidate.educations = parsedProfile.educations || candidate.educations || [];
-
-    // MERGE PROFESSIONAL
-    candidate.professional = {
-      ...candidate.professional,
-      ...parsedProfile.professional,
-    };
-
-    // --- Normalization: convert arrays -> strings if schema expects string ---
-    // Achievements: Application may send array; Candidate schema expects string.
-    if (Array.isArray(candidate.professional.achievements)) {
-      // join with comma and space
-      candidate.professional.achievements = candidate.professional.achievements.join(", ");
-    } else if (candidate.professional.achievements === undefined || candidate.professional.achievements === null) {
-      candidate.professional.achievements = candidate.professional.achievements || "";
+      // keep email synced
+      if (parsedProfile.personal.email) {
+        candidate.email = parsedProfile.personal.email;
+      }
     }
 
-   
+    /* ---------------- EDUCATION ---------------- */
+    if (Array.isArray(parsedProfile.educations)) {
+      candidate.educations = parsedProfile.educations;
+    }
 
-    // FILE UPLOADS
+    /* ---------------- PROFESSIONAL ---------------- */
+    if (parsedProfile.professional) {
+      candidate.professional = {
+        ...(candidate.professional || {}),
+        ...parsedProfile.professional
+      };
+    }
+
+    /* -------- NORMALIZE ACHIEVEMENTS -------- */
+    if (Array.isArray(candidate.professional?.achievements)) {
+      candidate.professional.achievements =
+        candidate.professional.achievements.join(", ");
+    }
+
+    /* ---------------- FILE UPLOADS ---------------- */
     if (req.files?.photo?.[0]) {
       const url = await uploadToAzure(
         req.files.photo[0].buffer,
@@ -482,15 +480,17 @@ exports.updateUserProfile = async (req, res) => {
       candidate.professional.resume = url;
     }
 
-    // Save updates
     await candidate.save();
 
-    res.json({
+    // 🔥 IMPORTANT: return FRESH data
+    const updatedCandidate = await Candidate.findOne({ userId });
+
+    res.status(200).json({
       success: true,
       message: "Profile updated successfully",
-      data: candidate,
-      profilePic: candidate.personal.photo,
+      data: updatedCandidate
     });
+
   } catch (err) {
     console.error("Update Profile Error:", err);
     res.status(500).json({ error: "Server error updating profile" });
