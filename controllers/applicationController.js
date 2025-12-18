@@ -130,27 +130,41 @@ if (!user) {
     }
 
     // ✅ RESUME IS MANDATORY
-// if (!req.files?.resume?.[0]) {
-//   return res.status(400).json({
-//     success: false,
-//     message: "Resume is required to apply for this job",
-//   });
-// }
+if (!req.files?.resume?.[0]) {
+  return res.status(400).json({
+    success: false,
+    message: "Resume is required to apply for this job",
+  });
+}
 
     ////newly added 
-     let resolvedJobTitle = null;
-    let resolvedJobType = null;
-    let resolvedLocation = null;
+    // let resolvedJobTitle = null;
+    // let resolvedJobType = null;
+    // let resolvedLocation = null;
+// 🔥 JOB RESOLUTION (FINAL & SAFE)
+let resolvedJobTitle =
+  req.body.jobTitle ||
+  req.body["jobTitle"] ||
+  null;
 
-    if (req.body.job && mongoose.Types.ObjectId.isValid(req.body.job)) {
-      const job = await Job.findById(req.body.job).lean();
+let resolvedJobType =
+  req.body.jobType ||
+  req.body["jobType"] ||
+  null;
 
-      if (job) {
-        resolvedJobTitle = job.jobTitle || null;
-        resolvedJobType = job.jobType || null;
-        resolvedLocation = job.location || null;
-      }
-    }
+let resolvedLocation =
+  req.body.location ||
+  null;
+
+// If jobId exists → override from DB
+if (req.body.job && mongoose.Types.ObjectId.isValid(req.body.job)) {
+  const job = await Job.findById(req.body.job).lean();
+  if (job) {
+    resolvedJobTitle = job.jobTitle || resolvedJobTitle;
+    resolvedJobType = job.jobType || resolvedJobType;
+    resolvedLocation = job.location || resolvedLocation;
+  }
+}
 
     if (req.files) {
       if (req.files.photo?.[0]) {
@@ -196,21 +210,37 @@ if (!user) {
 //   jobType: resolvedJobType,
 //   location: resolvedLocation,
 // };
-const jobEmbedded = resolvedJobTitle
-  ? { jobTitle: resolvedJobTitle, jobType: resolvedJobType, location: resolvedLocation }
-  : null;
+// const jobEmbedded = resolvedJobTitle
+//   ? { jobTitle: resolvedJobTitle, jobType: resolvedJobType, location: resolvedLocation }
+//   : null;
+const jobEmbedded = {
+  jobTitle: resolvedJobTitle,
+  jobType: resolvedJobType,
+  location: resolvedLocation,
+};
 
 const appDoc = new Application({
-  job: req.body.job,
-  jobTitle: resolvedJobTitle,
-  jobEmbedded,
-  Location: resolvedLocation, // ✅ ROOT LEVEL
+  job: req.body.job || null,
+  jobTitle: resolvedJobTitle,     // ✅ ROOT
+  jobEmbedded,                    // ✅ EMBEDDED
   userId: user.userId,
   personal,
   educations,
   professional,
   status: "Applied",
 });
+
+// const appDoc = new Application({
+//   job: req.body.job,
+//   jobTitle: resolvedJobTitle,
+//   jobEmbedded,
+//   Location: resolvedLocation, // ✅ ROOT LEVEL
+//   userId: user.userId,
+//   personal,
+//   educations,
+//   professional,
+//   status: "Applied",
+// });
 
     await appDoc.save();
 
